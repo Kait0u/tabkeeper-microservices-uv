@@ -1,12 +1,12 @@
-package pl.kaitoudev.tabkeeper;
+package pl.kaitoudev.tabkeeper.gateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class TabkeeperGroupServiceApplication {
+public class TabkeeperGatewayApplication {
 
   public static void main(String[] args) {
-    SpringApplication.run(TabkeeperGroupServiceApplication.class, args);
+    SpringApplication.run(TabkeeperGatewayApplication.class, args);
   }
 }

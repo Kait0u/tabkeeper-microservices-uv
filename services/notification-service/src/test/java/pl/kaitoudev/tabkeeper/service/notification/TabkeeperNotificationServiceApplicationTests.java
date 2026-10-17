@@ -1,10 +1,10 @@
-package pl.kaitoudev.tabkeeper;
+package pl.kaitoudev.tabkeeper.service.notification;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class TabkeeperExpenseServiceApplicationTests {
+class TabkeeperNotificationServiceApplicationTests {
 
   @Test
   void contextLoads() {}

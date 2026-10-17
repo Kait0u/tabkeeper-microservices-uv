@@ -1,12 +1,12 @@
-package pl.kaitoudev.tabkeeper;
+package pl.kaitoudev.tabkeeper.service.user;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class TabkeeperExpenseServiceApplication {
+public class TabkeeperUserServiceApplication {
 
   public static void main(String[] args) {
-    SpringApplication.run(TabkeeperExpenseServiceApplication.class, args);
+    SpringApplication.run(TabkeeperUserServiceApplication.class, args);
   }
 }

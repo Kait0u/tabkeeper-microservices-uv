@@ -1,10 +1,10 @@
-package pl.kaitoudev.tabkeeper;
+package pl.kaitoudev.tabkeeper.service.expense;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class TabkeeperGatewayApplicationTests {
+class TabkeeperExpenseServiceApplicationTests {
 
   @Test
   void contextLoads() {}
