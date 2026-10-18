@@ -5,7 +5,7 @@ plugins {
 dependencies {
     implementation(libs.spring.boot.actuator)
     implementation(libs.spring.cloud.config)
-//    implementation(libs.spring.boot.grpc.server)
+    implementation(libs.spring.boot.grpc.server)
     implementation(libs.spring.data.jpa)
     implementation(libs.flyway)
 
@@ -13,7 +13,7 @@ dependencies {
     runtimeOnly(libs.flyway.postgresql)
 
     testImplementation(libs.spring.boot.actuator.test)
-//    testImplementation(libs.spring.boot.grpc.server.test)
+    testImplementation(libs.spring.boot.grpc.server.test)
     testImplementation(libs.spring.data.jpa.test)
     testImplementation(libs.flyway.test)
 
