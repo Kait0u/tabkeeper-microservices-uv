@@ -9,8 +9,9 @@ services:
       context: .
       dockerfile: gateway/Dockerfile
     image: tabkeeper-gateway
-    ports:
-      - "8080:8080"
+    labels:
+      dev.tabkeeper.logs: "true"
+    ports: [ "8080:8080" ]
 
   # ================================================================================================
   # User Service
@@ -20,8 +21,9 @@ services:
       context: .
       dockerfile: services/user-service/Dockerfile
     image: tabkeeper-user-service
-    ports:
-      - "8081:8080"
+    labels:
+      dev.tabkeeper.logs: "true"
+    ports: [ "8081:8080" ]
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-user-service:5432/user_service
       SPRING_DATASOURCE_USERNAME: us
@@ -32,14 +34,12 @@ services:
 
   db-user-service:
     image: postgres:18-alpine
-    ports:
-      - "5432:5432"
+    ports: [ "5432:5432" ]
     environment:
       POSTGRES_DB: user_service
       POSTGRES_USER: us
       POSTGRES_PASSWORD: ${USER_DB_PASSWORD:?Required}
-    volumes:
-      - tabkeeper_user_service_postgres_data:/var/lib/postgresql
+    volumes: [ tabkeeper_user_service_postgres_data:/var/lib/postgresql ]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U us -d user_service"]
       interval: 5s
@@ -54,8 +54,9 @@ services:
       context: .
       dockerfile: services/group-service/Dockerfile
     image: tabkeeper-group-service
-    ports:
-      - "8082:8080"
+    labels:
+      dev.tabkeeper.logs: "true"
+    ports: [ "8082:8080" ]
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-group-service:5432/group_service
       SPRING_DATASOURCE_USERNAME: gs
@@ -66,14 +67,12 @@ services:
 
   db-group-service:
     image: postgres:18-alpine
-    ports:
-      - "5433:5432"
+    ports: [ "5433:5432" ]
     environment:
       POSTGRES_DB: group_service
       POSTGRES_USER: gs
       POSTGRES_PASSWORD: ${GROUP_DB_PASSWORD:?Required}
-    volumes:
-      - tabkeeper_group_service_postgres_data:/var/lib/postgresql
+    volumes: [ tabkeeper_group_service_postgres_data:/var/lib/postgresql ]
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U gs -d group_service" ]
       interval: 5s
@@ -88,8 +87,9 @@ services:
       context: .
       dockerfile: services/expense-service/Dockerfile
     image: tabkeeper-expense-service
-    ports:
-      - "8083:8080"
+    labels:
+      dev.tabkeeper.logs: "true"
+    ports: [ "8083:8080" ]
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-expense-service:5432/expense_service
       SPRING_DATASOURCE_USERNAME: es
@@ -100,14 +100,12 @@ services:
 
   db-expense-service:
     image: postgres:18-alpine
-    ports:
-      - "5434:5432"
+    ports: [ "5434:5432" ]
     environment:
       POSTGRES_DB: expense_service
       POSTGRES_USER: es
       POSTGRES_PASSWORD: ${EXPENSE_DB_PASSWORD:?Required}
-    volumes:
-      - tabkeeper_expense_service_postgres_data:/var/lib/postgresql
+    volumes: [ tabkeeper_expense_service_postgres_data:/var/lib/postgresql ]
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U es -d expense_service" ]
       interval: 5s
@@ -122,8 +120,19 @@ services:
       context: .
       dockerfile: services/notification-service/Dockerfile
     image: tabkeeper-notification-server
-    ports:
-      - "8084:8080"
+    labels:
+      dev.tabkeeper.logs: "true"
+    ports: [ "8084:8080" ]
+
+  # ================================================================================================
+  # Observability
+  # ================================================================================================
+  dozzle:
+    image: amir20/dozzle:main-alpine
+    ports: [ "9999:8080" ]
+    environment:
+      DOZZLE_FILTER: "label=dev.tabkeeper.logs=true"
+    volumes: [ /var/run/docker.sock:/var/run/docker.sock:ro ]
 
   # ================================================================================================
   # To Be Continued...
