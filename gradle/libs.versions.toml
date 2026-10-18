@@ -24,12 +24,22 @@ spring-cloud-gateway = { module = "org.springframework.cloud:spring-cloud-starte
 lombok = { module = "org.projectlombok:lombok" }
 
 # Database
+spring-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
 postgresql = { module = "org.postgresql:postgresql" }
+flyway = { module = "org.springframework.boot:spring-boot-starter-flyway" }
+flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
+
+# Testcontainers
+spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers" }
+testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupiter" }
+testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }
 
 # Testing
 spring-boot-actuator-test = { module = "org.springframework.boot:spring-boot-starter-actuator-test" }
 spring-boot-grpc-client-test = { module = "org.springframework.boot:spring-boot-starter-grpc-client-test" }
 spring-boot-grpc-server-test = { module = "org.springframework.boot:spring-boot-starter-grpc-server-test" }
+spring-data-jpa-test = { module = "org.springframework.boot:spring-boot-starter-data-jpa-test" }
+flyway-test = { module = "org.springframework.boot:spring-boot-starter-flyway-test" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 
 # Gradle plugins
