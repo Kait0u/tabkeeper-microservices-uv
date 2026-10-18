@@ -1,0 +1,136 @@
+name: tabkeeper
+
+services:
+  # ================================================================================================
+  # Gateway
+  # ================================================================================================
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    image: tabkeeper-gateway
+    ports:
+      - "8080:8080"
+
+  # ================================================================================================
+  # User Service
+  # ================================================================================================
+  user-service:
+    build:
+      context: .
+      dockerfile: services/user-service/Dockerfile
+    image: tabkeeper-user-service
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-user-service:5432/user_service
+      SPRING_DATASOURCE_USERNAME: us
+      SPRING_DATASOURCE_PASSWORD: ${USER_DB_PASSWORD:?Required}
+    depends_on:
+      db-user-service:
+        condition: service_healthy
+
+  db-user-service:
+    image: postgres:18-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: user_service
+      POSTGRES_USER: us
+      POSTGRES_PASSWORD: ${USER_DB_PASSWORD:?Required}
+    volumes:
+      - tabkeeper_user_service_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U us -d user_service"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ================================================================================================
+  # Group Service
+  # ================================================================================================
+  group-service:
+    build:
+      context: .
+      dockerfile: services/group-service/Dockerfile
+    image: tabkeeper-group-service
+    ports:
+      - "8082:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-group-service:5432/group_service
+      SPRING_DATASOURCE_USERNAME: gs
+      SPRING_DATASOURCE_PASSWORD: ${GROUP_DB_PASSWORD:?Required}
+    depends_on:
+      db-group-service:
+        condition: service_healthy
+
+  db-group-service:
+    image: postgres:18-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: group_service
+      POSTGRES_USER: gs
+      POSTGRES_PASSWORD: ${GROUP_DB_PASSWORD:?Required}
+    volumes:
+      - tabkeeper_group_service_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U gs -d group_service" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ================================================================================================
+  # Expense Service
+  # ================================================================================================
+  expense-service:
+    build:
+      context: .
+      dockerfile: services/expense-service/Dockerfile
+    image: tabkeeper-expense-service
+    ports:
+      - "8083:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-expense-service:5432/expense_service
+      SPRING_DATASOURCE_USERNAME: es
+      SPRING_DATASOURCE_PASSWORD: ${EXPENSE_DB_PASSWORD:?Required}
+    depends_on:
+      db-expense-service:
+        condition: service_healthy
+
+  db-expense-service:
+    image: postgres:18-alpine
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: expense_service
+      POSTGRES_USER: es
+      POSTGRES_PASSWORD: ${EXPENSE_DB_PASSWORD:?Required}
+    volumes:
+      - tabkeeper_expense_service_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U es -d expense_service" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ================================================================================================
+  # Notification Service
+  # ================================================================================================
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    image: tabkeeper-notification-server
+    ports:
+      - "8084:8080"
+
+  # ================================================================================================
+  # To Be Continued...
+  # ================================================================================================
+
+volumes:
+  tabkeeper_user_service_postgres_data: {}
+  tabkeeper_group_service_postgres_data: {}
+  tabkeeper_expense_service_postgres_data: {}
+
