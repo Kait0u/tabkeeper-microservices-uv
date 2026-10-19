@@ -1,17 +1,18 @@
 package pl.kaitoudev.tabkeeper.service.user.domain.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,12 +23,13 @@ import org.hibernate.annotations.UuidGenerator;
 @Setter
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
 @Entity
 @Table(name = "users")
 public class User {
     public enum Status {
-        ACTIVE, INACTIVE
+        ACTIVE, DISABLED
     }
 
     @Id
@@ -44,17 +46,26 @@ public class User {
 
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
-    private Status status;
-
-    @Column(name = "created_ts", nullable = false)
     @Builder.Default
-    private LocalDateTime createdTimestamp = LocalDateTime.now();
+    private Status status =  Status.ACTIVE;
+
+    @Column(name = "created_ts", nullable = false, updatable = false)
+    @Builder.Default
+    private Instant createdTimestamp = Instant.now();
 
     @Column(name = "updated_ts", nullable = false)
     @Builder.Default
-    private LocalDateTime updatedTimestamp = LocalDateTime.now();
+    private Instant updatedTimestamp = Instant.now();
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "credentials_id", nullable = false, unique = true)
+    @OneToOne(
+        mappedBy = "user",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
+    )
     private UserCredential credentials;
+
+    public void setCredentials(UserCredential credentials) {
+        this.credentials = Objects.requireNonNull(credentials);
+        this.credentials.setUser(this);
+    }
 }

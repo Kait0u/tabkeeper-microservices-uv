@@ -2,16 +2,17 @@ package pl.kaitoudev.tabkeeper.service.user.domain.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.UuidGenerator;
 
 
 @Setter
@@ -29,17 +30,20 @@ public class UserCredential {
     }
 
     @Id
-    @Column(nullable = false, updatable = false)
-    @GeneratedValue
-    @UuidGenerator
+    @Column(name = "user_id")
     private UUID id;
 
-    @Column(nullable = false, columnDefinition = "text")
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @MapsId
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @Column(name = "password_hash", nullable = false, columnDefinition = "text")
     private String passwordHash;
 
-    @Column(name = "created_ts", nullable = false)
-    private LocalDateTime createdTimestamp = LocalDateTime.now();
+    @Column(name = "created_ts", nullable = false, updatable = false)
+    private Instant createdTimestamp = Instant.now();
 
-    @Column(name = "created_ts", nullable = false)
-    private LocalDateTime updatedTs = LocalDateTime.now();
+    @Column(name = "updated_ts", nullable = false)
+    private Instant updatedTs = Instant.now();
 }
