@@ -24,3 +24,8 @@ spring:
   grpc:
     server:
       port: 9090
+
+logging:
+  level:
+    root: INFO
+    pl.kaitoudev.tabkeeper: DEBUG

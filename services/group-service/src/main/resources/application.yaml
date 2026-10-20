@@ -1,3 +1,8 @@
 spring:
   application:
     name: tabkeeper-group-service
+
+logging:
+  level:
+    root: INFO
+    pl.kaitoudev.tabkeeper: DEBUG
