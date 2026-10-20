@@ -9,6 +9,7 @@ public class GrpcMappingUtils {
   public Timestamp toProtobufTimestamp(Instant instant) {
     return Timestamp.newBuilder()
         .setSeconds(instant.getEpochSecond())
-        .setNanos(instant.getNano()).build();
+        .setNanos(instant.getNano())
+        .build();
   }
 }

@@ -19,7 +19,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.UuidGenerator;
 
-
 @Setter
 @Getter
 @NoArgsConstructor
@@ -28,44 +27,41 @@ import org.hibernate.annotations.UuidGenerator;
 @Entity
 @Table(name = "users")
 public class User {
-    public enum Status {
-        ACTIVE, DISABLED
-    }
+  public enum Status {
+    ACTIVE,
+    DISABLED
+  }
 
-    @Id
-    @Column(nullable = false, updatable = false)
-    @GeneratedValue
-    @UuidGenerator
-    private UUID id;
+  @Id
+  @Column(nullable = false, updatable = false)
+  @GeneratedValue
+  @UuidGenerator
+  private UUID id;
 
-    @Column(nullable = false, length = 320)
-    private String email;
+  @Column(nullable = false, length = 320)
+  private String email;
 
-    @Column(nullable = false, length = 100)
-    private String displayName;
+  @Column(nullable = false, length = 100)
+  private String displayName;
 
-    @Column(nullable = false, length = 20)
-    @Enumerated(EnumType.STRING)
-    @Builder.Default
-    private Status status =  Status.ACTIVE;
+  @Column(nullable = false, length = 20)
+  @Enumerated(EnumType.STRING)
+  @Builder.Default
+  private Status status = Status.ACTIVE;
 
-    @Column(name = "created_ts", nullable = false, updatable = false)
-    @Builder.Default
-    private Instant createdTimestamp = Instant.now();
+  @Column(name = "created_ts", nullable = false, updatable = false)
+  @Builder.Default
+  private Instant createdTimestamp = Instant.now();
 
-    @Column(name = "updated_ts", nullable = false)
-    @Builder.Default
-    private Instant updatedTimestamp = Instant.now();
+  @Column(name = "updated_ts", nullable = false)
+  @Builder.Default
+  private Instant updatedTimestamp = Instant.now();
 
-    @OneToOne(
-        mappedBy = "user",
-        cascade = CascadeType.ALL,
-        orphanRemoval = true
-    )
-    private UserCredential credentials;
+  @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private UserCredential credentials;
 
-    public void setCredentials(UserCredential credentials) {
-        this.credentials = Objects.requireNonNull(credentials);
-        this.credentials.setUser(this);
-    }
+  public void setCredentials(UserCredential credentials) {
+    this.credentials = Objects.requireNonNull(credentials);
+    this.credentials.setUser(this);
+  }
 }

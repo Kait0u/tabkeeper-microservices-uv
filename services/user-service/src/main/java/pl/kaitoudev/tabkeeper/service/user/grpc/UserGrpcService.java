@@ -33,8 +33,7 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
       responseObserver.onError(
           Status.NOT_FOUND
               .withDescription("User %s not found.".formatted(id))
-              .asRuntimeException()
-      );
+              .asRuntimeException());
 
       responseObserver.onCompleted();
       return;
@@ -42,19 +41,20 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
 
     User user = optUser.get();
 
-    GetUserResponse response = GetUserResponse.newBuilder()
-        .setUserId(user.getId().toString())
-        .setDisplayName(user.getDisplayName())
-        .setEmail(user.getEmail())
-        .build();
+    GetUserResponse response =
+        GetUserResponse.newBuilder()
+            .setUserId(user.getId().toString())
+            .setDisplayName(user.getDisplayName())
+            .setEmail(user.getEmail())
+            .build();
 
     responseObserver.onNext(response);
     responseObserver.onCompleted();
   }
 
   @Override
-  public void createUser(CreateUserRequest request,
-      StreamObserver<CreateUserResponse> responseObserver) {
+  public void createUser(
+      CreateUserRequest request, StreamObserver<CreateUserResponse> responseObserver) {
 
     String displayName = request.getDisplayName();
     String email = request.getEmail();
@@ -62,24 +62,21 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
 
     User user;
     try {
-       user = userService.createUser(displayName, email, plainPassword);
+      user = userService.createUser(displayName, email, plainPassword);
     } catch (EmailAlreadyTakenException ex) {
-      responseObserver.onError(
-          Status.ALREADY_EXISTS
-              .withCause(ex)
-              .asRuntimeException()
-      );
+      responseObserver.onError(Status.ALREADY_EXISTS.withCause(ex).asRuntimeException());
 
       responseObserver.onCompleted();
       return;
     }
 
-    CreateUserResponse response = CreateUserResponse.newBuilder()
-        .setUserId(user.getId().toString())
-        .setDisplayName(displayName)
-        .setEmail(email)
-        .setCreatedTs(GrpcMappingUtils.toProtobufTimestamp(user.getCreatedTimestamp()))
-        .build();
+    CreateUserResponse response =
+        CreateUserResponse.newBuilder()
+            .setUserId(user.getId().toString())
+            .setDisplayName(displayName)
+            .setEmail(email)
+            .setCreatedTs(GrpcMappingUtils.toProtobufTimestamp(user.getCreatedTimestamp()))
+            .build();
 
     responseObserver.onNext(response);
     responseObserver.onCompleted();

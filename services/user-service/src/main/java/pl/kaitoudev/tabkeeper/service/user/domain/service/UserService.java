@@ -32,10 +32,7 @@ public class UserService {
       throw new EmailAlreadyTakenException(email);
     }
 
-    User user = User.builder()
-        .displayName(displayName)
-        .email(email)
-        .build();
+    User user = User.builder().displayName(displayName).email(email).build();
 
     UserCredential userCreds = authService.createCredential(plainPassword);
     user.setCredentials(userCreds);
