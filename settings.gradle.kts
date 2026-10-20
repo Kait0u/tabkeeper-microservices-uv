@@ -28,4 +28,7 @@ include(
     "services:group-service",
     "services:notification-service",
     "services:user-service",
+
+    // Shared
+    "shared:grpc-utils",
 )
