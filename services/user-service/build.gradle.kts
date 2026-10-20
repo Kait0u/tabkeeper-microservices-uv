@@ -3,6 +3,9 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":contracts:user-contracts"))
+    implementation(project(":shared:grpc-utils"))
+
     implementation(libs.spring.boot.actuator)
     implementation(libs.spring.cloud.config)
     implementation(libs.spring.boot.grpc.server)
