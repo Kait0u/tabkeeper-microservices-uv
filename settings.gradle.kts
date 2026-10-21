@@ -20,8 +20,9 @@ include(
     // Contracts
     "contracts:user-contracts",
 
-    // Gateway
+    // Infra
     "gateway",
+    "discovery",
 
     // Microservices
     "services:expense-service",
