@@ -13,4 +13,12 @@ Furthermore, the following components will support the system:
 * **Group Service Database** - PostgreSQL
 * **Expense Service Database** - PostgreSQL
 * **Message Queue** - RabbitMQ; serves to propagate events across the system.
-* **Discovery Server** - Eureka; enables service discovery. 
+* **Discovery Server** - Eureka; enables service discovery.
+
+## Communication
+
+The Gateway will expose a REST API for its consumers. 
+The microservices will work using gRPC for direct calls, 
+and the message queue for event/update propagation across the system.
+
+The inner-network traffic should use mTLS for security.
