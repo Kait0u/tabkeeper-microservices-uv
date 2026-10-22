@@ -7,6 +7,9 @@ dependencies {
     implementation(libs.spring.cloud.gateway)
     implementation(libs.spring.cloud.config)
 
+    implementation(libs.spring.boot.web.server)
+    implementation(libs.spring.cloud.netflix.eureka.client)
+
     implementation(libs.spring.boot.grpc.client)
 
     testImplementation(libs.spring.boot.actuator.test)

@@ -12,9 +12,11 @@ services:
     labels:
       dev.tabkeeper.logs: "true"
     ports: [ "8080:8080" ]
+    environment:
+      EUREKA_URL: http://discovery:8761/eureka/
 
   # ================================================================================================
-  # Discovery (Eureka
+  # Discovery (Eureka)
   # ================================================================================================
 
   discovery:
@@ -38,6 +40,7 @@ services:
       dev.tabkeeper.logs: "true"
     ports: [ "9090:9090" ]
     environment:
+      EUREKA_URL: http://discovery:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-user-service:5432/user_service
       SPRING_DATASOURCE_USERNAME: us
       SPRING_DATASOURCE_PASSWORD: ${USER_DB_PASSWORD:?Required}
@@ -71,6 +74,7 @@ services:
       dev.tabkeeper.logs: "true"
     ports: [ "9091:9090" ]
     environment:
+      EUREKA_URL: http://discovery:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-group-service:5432/group_service
       SPRING_DATASOURCE_USERNAME: gs
       SPRING_DATASOURCE_PASSWORD: ${GROUP_DB_PASSWORD:?Required}
@@ -104,6 +108,7 @@ services:
       dev.tabkeeper.logs: "true"
     ports: [ "9092:9090" ]
     environment:
+      EUREKA_URL: http://discovery:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-expense-service:5432/expense_service
       SPRING_DATASOURCE_USERNAME: es
       SPRING_DATASOURCE_PASSWORD: ${EXPENSE_DB_PASSWORD:?Required}
@@ -136,6 +141,8 @@ services:
     labels:
       dev.tabkeeper.logs: "true"
     ports: [ "9093:9090" ]
+    environment:
+      EUREKA_URL: http://discovery:8761/eureka/
 
   # ================================================================================================
   # Observability

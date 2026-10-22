@@ -2,6 +2,15 @@ spring:
   application:
     name: tabkeeper-group-service
 
+  cloud:
+    config:
+      enabled: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+
 logging:
   level:
     root: INFO

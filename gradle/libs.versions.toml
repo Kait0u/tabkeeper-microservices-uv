@@ -12,6 +12,7 @@ spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies"
 spring-cloud-bom = { module = "org.springframework.cloud:spring-cloud-dependencies", version.ref = "spring-cloud" }
 
 # Spring Boot
+spring-boot-web-server = { module = "org.springframework.boot:spring-boot-web-server" }
 spring-boot-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 spring-boot-grpc-client = { module = "org.springframework.boot:spring-boot-starter-grpc-client" }
 spring-boot-grpc-server = { module = "org.springframework.boot:spring-boot-starter-grpc-server" }
