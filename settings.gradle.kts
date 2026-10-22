@@ -21,8 +21,8 @@ include(
     "contracts:user-contracts",
 
     // Infra
-    "gateway",
-    "discovery",
+    "infra:gateway",
+    "infra:discovery",
 
     // Microservices
     "services:expense-service",

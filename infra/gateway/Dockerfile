@@ -3,7 +3,7 @@ LABEL authors="kaito"
 
 WORKDIR /app
 
-COPY gateway/build/libs/*.jar app.jar
+COPY infra/gateway/build/libs/*.jar app.jar
 
 EXPOSE 8080
 

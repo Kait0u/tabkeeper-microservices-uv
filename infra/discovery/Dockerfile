@@ -3,7 +3,7 @@ LABEL authors="kaito"
 
 WORKDIR /app
 
-COPY discovery/build/libs/*.jar app.jar
+COPY infra/discovery/build/libs/*.jar app.jar
 
 EXPOSE 8080
 

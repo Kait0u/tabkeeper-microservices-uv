@@ -7,7 +7,7 @@ services:
   gateway:
     build:
       context: .
-      dockerfile: gateway/Dockerfile
+      dockerfile: infra/gateway/Dockerfile
     image: tabkeeper-gateway
     labels:
       dev.tabkeeper.logs: "true"
@@ -22,7 +22,7 @@ services:
   discovery:
     build:
       context: .
-      dockerfile: discovery/Dockerfile
+      dockerfile: infra/discovery/Dockerfile
     image: tabkeeper-discovery
     labels:
       dev.tabkeeper.logs: "true"
