@@ -1,0 +1,20 @@
+info:
+  name: Get User Details
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://localhost:8080/api/v1/users/:userId
+  params:
+    - name: userId
+      value: 948f125a-666f-484d-a755-49c826a3e2a4
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
