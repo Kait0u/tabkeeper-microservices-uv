@@ -53,8 +53,7 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
   }
 
   @Override
-  public void createUser(
-      CreateUserRequest request, StreamObserver<UserInfo> responseObserver) {
+  public void createUser(CreateUserRequest request, StreamObserver<UserInfo> responseObserver) {
 
     String displayName = request.getDisplayName();
     String email = request.getEmail();
