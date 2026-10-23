@@ -12,4 +12,8 @@ public class GrpcMappingUtils {
         .setNanos(instant.getNano())
         .build();
   }
+
+  public Instant fromProtobufTimestamp(Timestamp timestamp) {
+    return Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanos());
+  }
 }

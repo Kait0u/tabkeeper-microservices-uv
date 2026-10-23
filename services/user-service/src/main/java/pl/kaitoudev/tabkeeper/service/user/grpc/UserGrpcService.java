@@ -7,9 +7,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.grpc.server.service.GrpcService;
 import pl.kaitoudev.tabkeeper.proto.user.v1.CreateUserRequest;
-import pl.kaitoudev.tabkeeper.proto.user.v1.CreateUserResponse;
 import pl.kaitoudev.tabkeeper.proto.user.v1.GetUserRequest;
-import pl.kaitoudev.tabkeeper.proto.user.v1.GetUserResponse;
+import pl.kaitoudev.tabkeeper.proto.user.v1.UserInfo;
 import pl.kaitoudev.tabkeeper.proto.user.v1.UserServiceGrpc;
 import pl.kaitoudev.tabkeeper.service.user.domain.entity.User;
 import pl.kaitoudev.tabkeeper.service.user.domain.exception.EmailAlreadyTakenException;
@@ -24,7 +23,7 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
   private final UserService userService;
 
   @Override
-  public void getUser(GetUserRequest request, StreamObserver<GetUserResponse> responseObserver) {
+  public void getUser(GetUserRequest request, StreamObserver<UserInfo> responseObserver) {
     String id = request.getUserId();
 
     Optional<User> optUser = userService.getUserById(id);
@@ -41,11 +40,12 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
 
     User user = optUser.get();
 
-    GetUserResponse response =
-        GetUserResponse.newBuilder()
+    UserInfo response =
+        UserInfo.newBuilder()
             .setUserId(user.getId().toString())
             .setDisplayName(user.getDisplayName())
             .setEmail(user.getEmail())
+            .setCreatedTs(GrpcMappingUtils.toProtobufTimestamp(user.getCreatedTimestamp()))
             .build();
 
     responseObserver.onNext(response);
@@ -54,7 +54,7 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
 
   @Override
   public void createUser(
-      CreateUserRequest request, StreamObserver<CreateUserResponse> responseObserver) {
+      CreateUserRequest request, StreamObserver<UserInfo> responseObserver) {
 
     String displayName = request.getDisplayName();
     String email = request.getEmail();
@@ -70,8 +70,8 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
       return;
     }
 
-    CreateUserResponse response =
-        CreateUserResponse.newBuilder()
+    UserInfo response =
+        UserInfo.newBuilder()
             .setUserId(user.getId().toString())
             .setDisplayName(displayName)
             .setEmail(email)
