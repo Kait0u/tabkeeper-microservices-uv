@@ -35,6 +35,9 @@ flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
 # Protobuf
 google-protobuf-gradle-plugin = { module = "com.google.protobuf:protobuf-gradle-plugin", version.ref = "google-protobuf" }
 
+# gRPC
+grpc-inprocess = { module = "io.grpc:grpc-inprocess" }
+
 # Testcontainers
 spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers" }
 testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupiter" }
