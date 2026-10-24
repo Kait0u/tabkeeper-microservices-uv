@@ -1,6 +1,7 @@
 spring:
   application:
     name: tabkeeper-user-service
+
   cloud:
     config:
       enabled: false
