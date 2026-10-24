@@ -1,0 +1,114 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package tabkeeper.group.v1;
+
+option java_package = "pl.kaitoudev.tabkeeper.proto.group.v1";
+option java_multiple_files = true;
+
+service GroupService {
+  rpc CreateGroup(CreateGroupRequest) returns (GroupInfo);
+  rpc GetGroup(GetGroupRequest) returns (GroupInfo);
+  rpc GetGroupsForUser(GetGroupsForUserRequest) returns (GetGroupsForUserResponse);
+  rpc InviteUserToGroup(InviteUserToGroupRequest) returns (InviteUserToGroupResponse);
+  rpc GetInvitation(GetInvitationRequest) returns (InvitationInfo);
+  rpc AcceptGroupInvitation(AcceptGroupInvitationRequest) returns (AcceptGroupInvitationResponse);
+}
+
+// -----------------------------------------------------------------------------
+
+// SHARED
+
+message GroupInfo {
+  string group_id = 1;
+  string group_name = 2;
+  GroupMember owner = 3;
+  repeated GroupMember members = 4;
+  google.protobuf.Timestamp created_ts = 5;
+}
+
+message GroupMember {
+  string user_id = 1;
+  google.protobuf.Timestamp joined_ts = 2;
+}
+
+message InvitationInfo {
+  string from_id = 1;
+  string to_id = 2;
+  string group_id = 3;
+  string group_name = 4;
+  bool is_accepted = 5;
+  optional google.protobuf.Timestamp accepted_ts = 6;
+  google.protobuf.Timestamp created_ts = 7;
+}
+
+
+// Create Group
+
+message CreateGroupRequest {
+  string owner_id = 1;
+  string group_name = 2;
+}
+
+
+// Get Group
+
+message GetGroupRequest {
+  string group_id = 1;
+}
+
+
+// Get Groups For User
+
+message GetGroupsForUserRequest {
+  string user_id = 1;
+}
+
+message PerUserGroupInfo {
+  string group_id = 1;
+  string group_name = 2;
+  bool is_owner = 3;
+  google.protobuf.Timestamp created_ts = 4;
+}
+
+message GetGroupsForUserResponse {
+  string user_id = 1;
+  repeated PerUserGroupInfo groups_of_user = 2;
+}
+
+
+// Invite User To Group
+
+message InviteUserToGroupRequest {
+  string group_id = 1;
+  string user_id = 2;
+}
+
+message InviteUserToGroupResponse {
+  string group_id = 1;
+  string user_id = 2;
+  string invitation_id = 3;
+}
+
+
+// Get Invitation
+
+message GetInvitationRequest {
+  string invitation_id = 1;
+}
+
+
+// Accept Group Invitation
+
+message AcceptGroupInvitationRequest {
+  string invitation_id = 1;
+}
+
+message AcceptGroupInvitationResponse {
+  string invitation_id = 1;
+  string group_id = 2;
+}
+
+
+

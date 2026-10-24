@@ -19,6 +19,7 @@ rootProject.name = "tabkeeper"
 include(
     // Contracts
     "contracts:user-contracts",
+    "contracts:group-contracts",
 
     // Infra
     "infra:gateway",
