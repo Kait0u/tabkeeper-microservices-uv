@@ -11,6 +11,9 @@ service GroupService {
   rpc CreateGroup(CreateGroupRequest) returns (GroupInfo);
   rpc GetGroup(GetGroupRequest) returns (GroupInfo);
   rpc GetGroupsForUser(GetGroupsForUserRequest) returns (GetGroupsForUserResponse);
+  rpc CheckMembership(CheckMembershipRequest) returns (CheckMembershipResponse);
+
+  // Invites
   rpc InviteUserToGroup(InviteUserToGroupRequest) returns (InviteUserToGroupResponse);
   rpc GetInvitation(GetInvitationRequest) returns (InvitationInfo);
   rpc AcceptGroupInvitation(AcceptGroupInvitationRequest) returns (AcceptGroupInvitationResponse);
@@ -20,29 +23,43 @@ service GroupService {
 
 // SHARED
 
+enum GroupRole {
+  GROUP_ROLE_UNSPECIFIED = 0;
+  GROUP_ROLE_OWNER = 1;
+  GROUP_ROLE_MEMBER = 2;
+}
+
 message GroupInfo {
   string group_id = 1;
   string group_name = 2;
-  GroupMember owner = 3;
-  repeated GroupMember members = 4;
-  google.protobuf.Timestamp created_ts = 5;
+  repeated GroupMember members = 3;
+  google.protobuf.Timestamp created_ts = 4;
 }
 
 message GroupMember {
   string user_id = 1;
-  google.protobuf.Timestamp joined_ts = 2;
+  GroupRole role = 2;
+  google.protobuf.Timestamp joined_ts = 3;
+}
+
+enum InvitationStatus {
+  INVITATION_STATUS_UNSPECIFIED = 0;
+  INVITATION_STATUS_PENDING = 1;
+  INVITATION_STATUS_ACCEPTED = 2;
+  INVITATION_STATUS_DECLINED = 3;
+  INVITATION_STATUS_REVOKED = 4;
 }
 
 message InvitationInfo {
-  string from_id = 1;
-  string to_id = 2;
-  string group_id = 3;
-  string group_name = 4;
-  bool is_accepted = 5;
-  optional google.protobuf.Timestamp accepted_ts = 6;
+  string invitation_id = 1;
+  string group_id = 2;
+  string group_name = 3;
+  string invited_by_user_id = 4;
+  string invited_user_id = 5;
+  InvitationStatus status = 6;
   google.protobuf.Timestamp created_ts = 7;
+  optional google.protobuf.Timestamp accepted_ts = 8;
 }
-
 
 // Create Group
 
@@ -75,6 +92,21 @@ message PerUserGroupInfo {
 message GetGroupsForUserResponse {
   string user_id = 1;
   repeated PerUserGroupInfo groups_of_user = 2;
+}
+
+
+// Check Membership
+
+message CheckMembershipRequest {
+  string group_id = 1;
+  string user_id = 2;
+}
+
+message CheckMembershipResponse {
+  string group_id = 1;
+  string user_id = 2;
+  bool is_member = 3;
+  bool is_owner = 4;
 }
 
 
