@@ -31,6 +31,16 @@ public interface GroupRepository extends JpaRepository<Group, UUID> {
 
   @Query(
       """
+        SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END
+        FROM GroupMembership m
+        WHERE m.group.id = :groupId
+          AND m.userId = :userId
+          AND m.role = pl.kaitoudev.tabkeeper.service.group.domain.enums.GroupMembershipRole.OWNER
+        """)
+  boolean userOwnsGroup(UUID groupId, UUID userId);
+
+  @Query(
+      """
       SELECT DISTINCT g
       FROM Group g
       JOIN g.groupMemberships m

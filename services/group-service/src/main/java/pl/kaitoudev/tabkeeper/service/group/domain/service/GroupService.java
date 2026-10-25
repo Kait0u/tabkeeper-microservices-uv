@@ -60,4 +60,9 @@ public class GroupService {
     // Will also return false for nonexistent groups.
     return groupRepository.userBelongsToGroup(groupId, userId);
   }
+
+  public boolean checkOwnership(UUID groupId, UUID userId) {
+    // Will also return false for nonexistent groups.
+    return groupRepository.userOwnsGroup(groupId, userId);
+  }
 }
