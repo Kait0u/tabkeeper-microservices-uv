@@ -114,13 +114,15 @@ message CheckMembershipResponse {
 
 message InviteUserToGroupRequest {
   string group_id = 1;
-  string user_id = 2;
+  string invited_by_user_id = 2;
+  string invited_user_id = 3;
 }
 
 message InviteUserToGroupResponse {
-  string group_id = 1;
-  string user_id = 2;
-  string invitation_id = 3;
+  string invitation_id = 1;
+  string group_id = 2;
+  string invited_by_user_id = 3;
+  string invited_user_id = 4;
 }
 
 
