@@ -1,5 +1,6 @@
 package pl.kaitoudev.tabkeeper.service.group.domain.service;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -7,9 +8,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import pl.kaitoudev.tabkeeper.service.group.domain.entity.Group;
 import pl.kaitoudev.tabkeeper.service.group.domain.entity.GroupInvitation;
+import pl.kaitoudev.tabkeeper.service.group.domain.enums.GroupInvitationStatus;
 import pl.kaitoudev.tabkeeper.service.group.domain.exception.AlreadyAMemberException;
 import pl.kaitoudev.tabkeeper.service.group.domain.exception.AlreadyInvitedException;
 import pl.kaitoudev.tabkeeper.service.group.domain.exception.NonexistentGroupException;
+import pl.kaitoudev.tabkeeper.service.group.domain.exception.NonexistentInvitationException;
 import pl.kaitoudev.tabkeeper.service.group.domain.repository.GroupInvitationRepository;
 import pl.kaitoudev.tabkeeper.service.group.domain.repository.GroupRepository;
 
@@ -17,6 +20,9 @@ import pl.kaitoudev.tabkeeper.service.group.domain.repository.GroupRepository;
 @Service
 @RequiredArgsConstructor
 public class GroupInvitationService {
+
+  private final GroupMembershipService groupMembershipService;
+
   private final GroupInvitationRepository groupInvitationRepository;
   private final GroupRepository groupRepository;
 
@@ -52,6 +58,35 @@ public class GroupInvitationService {
 
     GroupInvitation saved = groupInvitationRepository.save(groupInvitation);
     log.info("InvitationCreated: ID={}", saved.getId());
+
+    return saved;
+  }
+
+  public GroupInvitation getGroupInvitation(UUID invitationId) {
+    log.info("Getting group invitation by ID={}", invitationId);
+    Optional<GroupInvitation> optInvitation = groupInvitationRepository.findById(invitationId);
+
+    if (optInvitation.isEmpty()) {
+      log.warn("Invitation not found for ID={}", invitationId);
+      throw NonexistentInvitationException.ofId(invitationId);
+    }
+
+    return optInvitation.get();
+  }
+
+  public GroupInvitation acceptInvitation(UUID invitationId) {
+    log.info("Accepting invitation by ID={}", invitationId);
+
+    GroupInvitation groupInvitation = getGroupInvitation(invitationId);
+
+    groupInvitation.setStatus(GroupInvitationStatus.ACCEPTED);
+    groupInvitation.setRespondedTimestamp(Instant.now());
+
+    GroupInvitation saved = groupInvitationRepository.save(groupInvitation);
+
+    log.info("InvitationAccepted: ID={}", saved.getId());
+
+    groupMembershipService.addMemberToGroup(groupInvitation.getGroup().getId(), invitationId);
 
     return saved;
   }
