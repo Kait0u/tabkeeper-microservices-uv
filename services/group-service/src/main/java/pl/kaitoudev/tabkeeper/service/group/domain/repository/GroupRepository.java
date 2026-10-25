@@ -46,7 +46,7 @@ public interface GroupRepository extends JpaRepository<Group, UUID> {
       WHERE m.userId = :userId
         AND m.role = :role
       """)
-  List<Group> findAllForUserWithRole(UUID userId, GroupMembershipRole role);// WITH MEMBERSHIPS
+  List<Group> findAllForUserWithRole(UUID userId, GroupMembershipRole role); // WITH MEMBERSHIPS
 
   @EntityGraph(attributePaths = "groupMemberships")
   Optional<Group> findWithMembershipsByCreatedByAndName(UUID createdBy, String name);
