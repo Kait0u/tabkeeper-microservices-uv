@@ -83,7 +83,8 @@ public class GroupGrpcService extends GroupServiceGrpc.GroupServiceImplBase {
 
   @Override
   public void getGroup(GetGroupRequest request, StreamObserver<GroupInfo> responseObserver) {
-    Optional<Group> optGroup = groupService.getGroupById(UUID.fromString(request.getGroupId()));
+    Optional<Group> optGroup =
+        groupService.getGroupByIdWithMembers(UUID.fromString(request.getGroupId()));
 
     if (optGroup.isEmpty()) {
       responseObserver.onError(

@@ -24,6 +24,10 @@ public class GroupService {
     return groupRepository.findById(groupId);
   }
 
+  public Optional<Group> getGroupByIdWithMembers(UUID groupId) {
+    return groupRepository.findWithMembershipsById(groupId);
+  }
+
   @Transactional
   public Group createGroup(String groupName, UUID creatorId) {
     if (groupRepository.existsByNameAndRole(groupName, creatorId, GroupMembershipRole.OWNER)) {
