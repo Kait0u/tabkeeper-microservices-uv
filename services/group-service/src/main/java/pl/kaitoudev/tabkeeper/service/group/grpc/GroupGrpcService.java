@@ -63,8 +63,6 @@ public class GroupGrpcService extends GroupServiceGrpc.GroupServiceImplBase {
               .withCause(ex)
               .withDescription(ex.getMessage())
               .asRuntimeException());
-
-      responseObserver.onCompleted();
       return;
     }
 
@@ -91,7 +89,6 @@ public class GroupGrpcService extends GroupServiceGrpc.GroupServiceImplBase {
           Status.NOT_FOUND
               .withDescription("Group %s not found.".formatted(request.getGroupId()))
               .asRuntimeException());
-      responseObserver.onCompleted();
       return;
     }
 
@@ -179,8 +176,6 @@ public class GroupGrpcService extends GroupServiceGrpc.GroupServiceImplBase {
     } catch (NonexistentGroupException ex) {
       responseObserver.onError(
           Status.NOT_FOUND.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
-
-      responseObserver.onCompleted();
       return;
     } catch (AlreadyInvitedException | AlreadyAMemberException ex) {
       responseObserver.onError(
@@ -188,8 +183,6 @@ public class GroupGrpcService extends GroupServiceGrpc.GroupServiceImplBase {
               .withCause(ex)
               .withDescription(ex.getMessage())
               .asRuntimeException());
-
-      responseObserver.onCompleted();
       return;
     }
 
@@ -216,8 +209,6 @@ public class GroupGrpcService extends GroupServiceGrpc.GroupServiceImplBase {
     } catch (NonexistentInvitationException ex) {
       responseObserver.onError(
           Status.NOT_FOUND.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
-
-      responseObserver.onCompleted();
       return;
     }
 
@@ -255,7 +246,6 @@ public class GroupGrpcService extends GroupServiceGrpc.GroupServiceImplBase {
     } catch (NonexistentInvitationException | NonexistentGroupException ex) {
       responseObserver.onError(
           Status.NOT_FOUND.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
-      responseObserver.onCompleted();
       return;
     }
 

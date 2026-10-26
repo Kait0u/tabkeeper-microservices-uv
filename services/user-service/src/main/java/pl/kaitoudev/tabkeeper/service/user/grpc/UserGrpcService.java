@@ -33,8 +33,6 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
           Status.NOT_FOUND
               .withDescription("User %s not found.".formatted(id))
               .asRuntimeException());
-
-      responseObserver.onCompleted();
       return;
     }
 
@@ -63,9 +61,11 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
     try {
       user = userService.createUser(displayName, email, plainPassword);
     } catch (EmailAlreadyTakenException ex) {
-      responseObserver.onError(Status.ALREADY_EXISTS.withCause(ex).asRuntimeException());
-
-      responseObserver.onCompleted();
+      responseObserver.onError(
+          Status.ALREADY_EXISTS
+              .withCause(ex)
+              .withDescription(ex.getMessage())
+              .asRuntimeException());
       return;
     }
 
