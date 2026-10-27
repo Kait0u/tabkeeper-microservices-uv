@@ -1,0 +1,18 @@
+info:
+  name: CreateGroup
+  type: grpc
+  seq: 2
+
+grpc:
+  url: "{{urlGroupService}}"
+  method: /tabkeeper.group.v1.GroupService/CreateGroup
+  methodType: unary
+  protoFilePath: ../../contracts/group-contracts/src/main/proto/tabkeeper/group/v1/group_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "owner_id": "948f125a-666f-484d-a755-49c826a3e2a4",
+          "group_name": "AliceGroup01"
+        }
+  auth: inherit

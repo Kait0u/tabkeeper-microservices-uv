@@ -1,0 +1,18 @@
+info:
+  name: CheckMembership
+  type: grpc
+  seq: 4
+
+grpc:
+  url: "{{urlGroupService}}"
+  method: /tabkeeper.group.v1.GroupService/CheckMembership
+  methodType: unary
+  protoFilePath: ../../contracts/group-contracts/src/main/proto/tabkeeper/group/v1/group_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "group_id": "862420bb-4381-48e0-a029-ae16a86c5192",
+          "user_id": "948f125a-666f-484d-a755-49c826a3e2a4"
+        }
+  auth: inherit

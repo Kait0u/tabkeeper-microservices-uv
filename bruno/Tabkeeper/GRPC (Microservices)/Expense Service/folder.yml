@@ -1,0 +1,7 @@
+info:
+  name: Expense Service
+  type: folder
+  seq: 3
+
+request:
+  auth: inherit

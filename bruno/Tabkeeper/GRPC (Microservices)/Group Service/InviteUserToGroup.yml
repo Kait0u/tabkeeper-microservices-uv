@@ -1,0 +1,19 @@
+info:
+  name: InviteUserToGroup
+  type: grpc
+  seq: 5
+
+grpc:
+  url: "{{urlGroupService}}"
+  method: /tabkeeper.group.v1.GroupService/InviteUserToGroup
+  methodType: unary
+  protoFilePath: ../../contracts/group-contracts/src/main/proto/tabkeeper/group/v1/group_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "group_id": "862420bb-4381-48e0-a029-ae16a86c5192",
+          "invited_by_user_id": "948f125a-666f-484d-a755-49c826a3e2a4", 
+          "invited_user_id": "7e0959d7-8c79-42e4-8481-3cc8f294c4b4"
+        }
+  auth: inherit

@@ -1,0 +1,17 @@
+info:
+  name: GetUser
+  type: grpc
+  seq: 1
+
+grpc:
+  url: "{{urlUserService}}"
+  method: /tabkeeper.users.v1.UserService/GetUser
+  methodType: unary
+  protoFilePath: ../../contracts/user-contracts/src/main/proto/tabkeeper/user/v1/user_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "user_id": "948f125a-666f-484d-a755-49c826a3e2a4"
+        }
+  auth: inherit

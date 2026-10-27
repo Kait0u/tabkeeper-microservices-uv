@@ -1,0 +1,17 @@
+info:
+  name: GetGroupsForUser
+  type: grpc
+  seq: 3
+
+grpc:
+  url: "{{urlGroupService}}"
+  method: /tabkeeper.group.v1.GroupService/GetGroupsForUser
+  methodType: unary
+  protoFilePath: ../../contracts/group-contracts/src/main/proto/tabkeeper/group/v1/group_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "user_id": "948f125a-666f-484d-a755-49c826a3e2a4"
+        }
+  auth: inherit

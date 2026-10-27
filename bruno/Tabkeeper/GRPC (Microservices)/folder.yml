@@ -5,3 +5,10 @@ info:
 
 request:
   auth: inherit
+  variables:
+    - name: urlUserService
+      value: localhost:9090
+    - name: urlGroupService
+      value: localhost:9091
+    - name: urlExpenseService
+      value: localhost:9092

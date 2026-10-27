@@ -1,0 +1,19 @@
+info:
+  name: CreateUser
+  type: grpc
+  seq: 2
+
+grpc:
+  url: "{{urlUserService}}"
+  method: /tabkeeper.users.v1.UserService/CreateUser
+  methodType: unary
+  protoFilePath: ../../contracts/user-contracts/src/main/proto/tabkeeper/user/v1/user_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "display_name": "Celine",
+          "email": "celine@celinemail.com",
+          "password": "CelinePassword"
+        }
+  auth: inherit

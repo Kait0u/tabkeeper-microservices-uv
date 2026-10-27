@@ -1,0 +1,7 @@
+info:
+  name: Group Service
+  type: folder
+  seq: 2
+
+request:
+  auth: inherit

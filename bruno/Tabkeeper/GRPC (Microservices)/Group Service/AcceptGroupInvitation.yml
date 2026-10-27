@@ -1,0 +1,17 @@
+info:
+  name: AcceptGroupInvitation
+  type: grpc
+  seq: 7
+
+grpc:
+  url: "{{urlGroupService}}"
+  method: /tabkeeper.group.v1.GroupService/AcceptGroupInvitation
+  methodType: unary
+  protoFilePath: ../../contracts/group-contracts/src/main/proto/tabkeeper/group/v1/group_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "invitation_id": "b6da2a35-0836-417b-a994-d27c257585f4"
+        }
+  auth: inherit
