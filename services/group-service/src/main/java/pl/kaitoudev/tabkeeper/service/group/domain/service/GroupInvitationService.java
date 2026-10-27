@@ -1,5 +1,6 @@
 package pl.kaitoudev.tabkeeper.service.group.domain.service;
 
+import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -74,10 +75,24 @@ public class GroupInvitationService {
     return optInvitation.get();
   }
 
+  public GroupInvitation getGroupInvitationWithGroup(UUID invitationId) {
+    log.info("Getting group invitation by ID={} (with group)", invitationId);
+    Optional<GroupInvitation> optInvitation =
+        groupInvitationRepository.findWithGroupById(invitationId);
+
+    if (optInvitation.isEmpty()) {
+      log.warn("Invitation not found for ID={}", invitationId);
+      throw NonexistentInvitationException.ofId(invitationId);
+    }
+
+    return optInvitation.get();
+  }
+
+  @Transactional
   public GroupInvitation acceptInvitation(UUID invitationId) {
     log.info("Accepting invitation by ID={}", invitationId);
 
-    GroupInvitation groupInvitation = getGroupInvitation(invitationId);
+    GroupInvitation groupInvitation = getGroupInvitationWithGroup(invitationId);
 
     groupInvitation.setStatus(GroupInvitationStatus.ACCEPTED);
     groupInvitation.setRespondedTimestamp(Instant.now());
@@ -86,7 +101,8 @@ public class GroupInvitationService {
 
     log.info("InvitationAccepted: ID={}", saved.getId());
 
-    groupMembershipService.addMemberToGroup(groupInvitation.getGroup().getId(), invitationId);
+    groupMembershipService.addMemberToGroup(
+        groupInvitation.getGroup().getId(), groupInvitation.getInvitedUser());
 
     return saved;
   }

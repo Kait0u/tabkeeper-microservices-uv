@@ -1,12 +1,17 @@
 package pl.kaitoudev.tabkeeper.service.group.domain.repository;
 
+import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import pl.kaitoudev.tabkeeper.service.group.domain.entity.GroupInvitation;
 
 public interface GroupInvitationRepository extends JpaRepository<GroupInvitation, UUID> {
+
+  @EntityGraph(attributePaths = "group")
+  Optional<GroupInvitation> findWithGroupById(UUID invitationId);
 
   @Query(
       """

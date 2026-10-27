@@ -18,6 +18,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 import pl.kaitoudev.tabkeeper.service.group.domain.enums.GroupInvitationStatus;
 
@@ -52,6 +53,7 @@ public class GroupInvitation {
   @Column(name = "responded_ts")
   private Instant respondedTimestamp;
 
+  @CreationTimestamp
   @Column(name = "created_ts", nullable = false)
   private Instant createdTimestamp;
 

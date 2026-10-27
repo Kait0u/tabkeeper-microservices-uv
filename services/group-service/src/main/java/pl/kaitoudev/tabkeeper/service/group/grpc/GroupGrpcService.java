@@ -205,7 +205,8 @@ public class GroupGrpcService extends GroupServiceGrpc.GroupServiceImplBase {
 
     try {
       groupInvitation =
-          groupInvitationService.getGroupInvitation(UUID.fromString(request.getInvitationId()));
+          groupInvitationService.getGroupInvitationWithGroup(
+              UUID.fromString(request.getInvitationId()));
     } catch (NonexistentInvitationException ex) {
       responseObserver.onError(
           Status.NOT_FOUND.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
