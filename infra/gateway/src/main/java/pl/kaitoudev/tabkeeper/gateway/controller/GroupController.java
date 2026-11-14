@@ -1,5 +1,6 @@
 package pl.kaitoudev.tabkeeper.gateway.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -27,6 +28,7 @@ import pl.kaitoudev.tabkeeper.gateway.dto.group.InviteUserToGroupRequest;
 import pl.kaitoudev.tabkeeper.gateway.dto.group.InviteUserToGroupResponse;
 
 /** Exposes groups and their nested resources without authenticating request-supplied user IDs. */
+@Tag(name = "Groups")
 @RestController
 @RequestMapping("/api/v1/groups")
 @RequiredArgsConstructor

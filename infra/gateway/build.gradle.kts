@@ -9,6 +9,7 @@ dependencies {
 
     implementation(libs.spring.boot.actuator)
     implementation(libs.spring.cloud.gateway)
+    implementation(libs.springdoc.openapi)
     implementation(libs.spring.cloud.config)
 
     implementation(libs.spring.boot.web.server)

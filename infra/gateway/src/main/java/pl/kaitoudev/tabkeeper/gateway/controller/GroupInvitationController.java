@@ -1,5 +1,6 @@
 package pl.kaitoudev.tabkeeper.gateway.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import pl.kaitoudev.tabkeeper.gateway.dto.group.AcceptGroupInvitationResponse;
 import pl.kaitoudev.tabkeeper.gateway.dto.group.GetInvitationDetailsResponse;
 
 /** Exposes invitation resources using the Group Service's current no-auth contract. */
+@Tag(name = "Group Invitations")
 @RestController
 @RequestMapping("/api/v1/invitations")
 @RequiredArgsConstructor
