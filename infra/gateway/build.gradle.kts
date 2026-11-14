@@ -15,9 +15,6 @@ dependencies {
     implementation(libs.spring.boot.web.server)
     implementation(libs.spring.cloud.netflix.eureka.client)
 
-    implementation(libs.spring.boot.grpc.client)
-    implementation(libs.grpc.inprocess)
-
     testImplementation(libs.spring.boot.actuator.test)
     testImplementation(libs.spring.boot.grpc.client.test)
 }
