@@ -31,6 +31,7 @@ import pl.kaitoudev.tabkeeper.proto.group.v1.InvitationInfo;
 import pl.kaitoudev.tabkeeper.proto.group.v1.InviteUserToGroupRequest;
 import pl.kaitoudev.tabkeeper.proto.group.v1.InviteUserToGroupResponse;
 import pl.kaitoudev.tabkeeper.shared.grpc.GrpcMappingUtils;
+import pl.kaitoudev.tabkeeper.shared.grpc.availability.GrpcStubHolder;
 
 /** Calls the Group Service and maps its protobuf responses to gateway domain models. */
 @Component
@@ -42,13 +43,13 @@ public class GroupGrpcClient {
   /** Deadline for commands, matching the user client. */
   private static final Duration WRITE_TIMEOUT = Duration.ofSeconds(5);
 
-  private final GroupServiceGrpc.GroupServiceBlockingStub stub;
+  private final GrpcStubHolder<GroupServiceGrpc.GroupServiceBlockingStub> holder;
 
   /** Retrieves a group and its members; upstream gRPC errors propagate to gateway advice. */
   public GroupDetails getGroup(String groupId) {
     GetGroupRequest request = GetGroupRequest.newBuilder().setGroupId(groupId).build();
 
-    GroupInfo response = stub.withDeadlineAfter(READ_TIMEOUT).getGroup(request);
+    GroupInfo response = holder.getStub().withDeadlineAfter(READ_TIMEOUT).getGroup(request);
 
     return toGroupDetails(response);
   }
@@ -58,7 +59,7 @@ public class GroupGrpcClient {
     CreateGroupRequest request =
         CreateGroupRequest.newBuilder().setOwnerId(ownerId).setGroupName(groupName).build();
 
-    GroupInfo response = stub.withDeadlineAfter(WRITE_TIMEOUT).createGroup(request);
+    GroupInfo response = holder.getStub().withDeadlineAfter(WRITE_TIMEOUT).createGroup(request);
 
     return toGroupDetails(response);
   }
@@ -69,7 +70,7 @@ public class GroupGrpcClient {
         GetGroupsForUserRequest.newBuilder().setUserId(userId).build();
 
     GetGroupsForUserResponse response =
-        stub.withDeadlineAfter(READ_TIMEOUT).getGroupsForUser(request);
+        holder.getStub().withDeadlineAfter(READ_TIMEOUT).getGroupsForUser(request);
 
     return response.getGroupsOfUserList().stream()
         .map(
@@ -88,7 +89,7 @@ public class GroupGrpcClient {
         CheckMembershipRequest.newBuilder().setGroupId(groupId).setUserId(userId).build();
 
     CheckMembershipResponse response =
-        stub.withDeadlineAfter(READ_TIMEOUT).checkMembership(request);
+        holder.getStub().withDeadlineAfter(READ_TIMEOUT).checkMembership(request);
 
     return new MembershipDetails(
         UUID.fromString(response.getGroupId()),
@@ -108,7 +109,7 @@ public class GroupGrpcClient {
             .build();
 
     InviteUserToGroupResponse response =
-        stub.withDeadlineAfter(WRITE_TIMEOUT).inviteUserToGroup(request);
+        holder.getStub().withDeadlineAfter(WRITE_TIMEOUT).inviteUserToGroup(request);
 
     return new InvitationCreatedDetails(
         UUID.fromString(response.getInvitationId()),
@@ -122,7 +123,8 @@ public class GroupGrpcClient {
     GetInvitationRequest request =
         GetInvitationRequest.newBuilder().setInvitationId(invitationId).build();
 
-    InvitationInfo response = stub.withDeadlineAfter(READ_TIMEOUT).getInvitation(request);
+    InvitationInfo response =
+        holder.getStub().withDeadlineAfter(READ_TIMEOUT).getInvitation(request);
 
     return new InvitationDetails(
         UUID.fromString(response.getInvitationId()),
@@ -143,7 +145,7 @@ public class GroupGrpcClient {
         AcceptGroupInvitationRequest.newBuilder().setInvitationId(invitationId).build();
 
     AcceptGroupInvitationResponse response =
-        stub.withDeadlineAfter(WRITE_TIMEOUT).acceptGroupInvitation(request);
+        holder.getStub().withDeadlineAfter(WRITE_TIMEOUT).acceptGroupInvitation(request);
 
     return new InvitationAcceptedDetails(
         UUID.fromString(response.getInvitationId()), UUID.fromString(response.getGroupId()));

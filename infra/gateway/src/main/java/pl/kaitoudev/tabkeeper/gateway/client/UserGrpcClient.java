@@ -10,17 +10,18 @@ import pl.kaitoudev.tabkeeper.proto.user.v1.GetUserRequest;
 import pl.kaitoudev.tabkeeper.proto.user.v1.UserInfo;
 import pl.kaitoudev.tabkeeper.proto.user.v1.UserServiceGrpc;
 import pl.kaitoudev.tabkeeper.shared.grpc.GrpcMappingUtils;
+import pl.kaitoudev.tabkeeper.shared.grpc.availability.GrpcStubHolder;
 
 @Component
 @RequiredArgsConstructor
 public class UserGrpcClient {
 
-  private final UserServiceGrpc.UserServiceBlockingStub stub;
+  private final GrpcStubHolder<UserServiceGrpc.UserServiceBlockingStub> holder;
 
   public UserDetails getUser(String userId) {
     GetUserRequest request = GetUserRequest.newBuilder().setUserId(userId).build();
 
-    UserInfo response = stub.withDeadlineAfter(Duration.ofSeconds(3)).getUser(request);
+    UserInfo response = holder.getStub().withDeadlineAfter(Duration.ofSeconds(3)).getUser(request);
 
     return UserDetails.builder()
         .userId(UUID.fromString(response.getUserId()))
@@ -38,7 +39,8 @@ public class UserGrpcClient {
             .setPassword(plainPassword)
             .build();
 
-    UserInfo response = stub.withDeadlineAfter(Duration.ofSeconds(5)).createUser(request);
+    UserInfo response =
+        holder.getStub().withDeadlineAfter(Duration.ofSeconds(5)).createUser(request);
 
     return UserDetails.builder()
         .userId(UUID.fromString(response.getUserId()))

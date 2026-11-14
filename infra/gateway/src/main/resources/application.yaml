@@ -11,5 +11,10 @@ eureka:
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
     fetch-registry: true
+    registry-fetch-interval-seconds: 30
+
+tabkeeper:
+  grpc:
+    discovery-refresh-interval: PT5S
 
 
