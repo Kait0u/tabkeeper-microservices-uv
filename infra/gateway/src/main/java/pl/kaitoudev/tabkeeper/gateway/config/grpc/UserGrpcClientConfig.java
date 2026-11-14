@@ -3,7 +3,10 @@ package pl.kaitoudev.tabkeeper.gateway.config.grpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.context.annotation.Bean;
@@ -36,7 +39,8 @@ public class UserGrpcClientConfig {
     String grpcPort;
 
     try {
-      grpcPort = serviceInstance.getMetadata().get("gRPC_port");
+      Map<String, String> metadata = Objects.requireNonNull(serviceInstance.getMetadata());
+      grpcPort = Objects.requireNonNull(metadata.get("gRPC_port"));
     } catch (NullPointerException e) {
       log.error("No gRPC port found for \"{}\"", SERVICE_ID);
       return UnavailableManagedChannelFactory.createUnavailableManagedChannel(
@@ -55,7 +59,7 @@ public class UserGrpcClientConfig {
 
   @Bean
   public UserServiceGrpc.UserServiceBlockingStub userServiceBlockingStub(
-      ManagedChannel userServiceChannel) {
+      @Qualifier("userServiceChannel") ManagedChannel userServiceChannel) {
     return UserServiceGrpc.newBlockingStub(userServiceChannel);
   }
 }
