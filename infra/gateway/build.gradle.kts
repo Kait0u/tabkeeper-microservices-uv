@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     implementation(project(":contracts:user-contracts"))
+    implementation(project(":contracts:group-contracts"))
     implementation(project(":shared:grpc-utils"))
 
     implementation(libs.spring.boot.actuator)
