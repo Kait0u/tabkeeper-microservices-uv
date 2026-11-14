@@ -1,5 +1,6 @@
 package pl.kaitoudev.tabkeeper.gateway.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.UUID;
@@ -17,6 +18,8 @@ import pl.kaitoudev.tabkeeper.gateway.dto.user.CreateUserRequest;
 import pl.kaitoudev.tabkeeper.gateway.dto.user.CreateUserResponse;
 import pl.kaitoudev.tabkeeper.gateway.dto.user.GetUserDetailsResponse;
 
+/** Exposes user operations through the gateway. */
+@Tag(name = "Users")
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
@@ -24,6 +27,7 @@ public class UserController {
 
   private final UserGrpcClient userGrpcClient;
 
+  /** Retrieves user details by user identifier. */
   @GetMapping("/{user_id}")
   public ResponseEntity<GetUserDetailsResponse> getUserDetails(
       @PathVariable("user_id") UUID userId) {
@@ -40,6 +44,7 @@ public class UserController {
     return ResponseEntity.ok(responseDto);
   }
 
+  /** Creates a user and returns its details with a Location header. */
   @PostMapping
   public ResponseEntity<CreateUserResponse> createUser(
       @Valid @RequestBody CreateUserRequest request) {
