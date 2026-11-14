@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: http://localhost:8080/api/v1/groups
+  url: http://localhost:8080/api/v1/groups?user_id=948f125a-666f-484d-a755-49c826a3e2a4
   params:
     - name: user_id
       value: 948f125a-666f-484d-a755-49c826a3e2a4
