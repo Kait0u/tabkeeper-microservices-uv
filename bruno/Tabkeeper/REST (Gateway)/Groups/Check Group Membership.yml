@@ -1,0 +1,23 @@
+info:
+  name: Check Group Membership
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: http://localhost:8080/api/v1/groups/:groupId/members/:userId
+  params:
+    - name: groupId
+      value: 862420bb-4381-48e0-a029-ae16a86c5192
+      type: path
+    - name: userId
+      value: 948f125a-666f-484d-a755-49c826a3e2a4
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

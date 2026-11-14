@@ -1,0 +1,23 @@
+info:
+  name: Create Group
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: http://localhost:8080/api/v1/groups
+  body:
+    type: json
+    data: |-
+      {
+        "ownerId": "948f125a-666f-484d-a755-49c826a3e2a4",
+        "groupName": "AliceGroup01"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

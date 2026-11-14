@@ -1,0 +1,20 @@
+info:
+  name: Accept Group Invitation
+  type: http
+  seq: 9
+
+http:
+  method: POST
+  url: http://localhost:8080/api/v1/invitations/:invitationId/accept
+  params:
+    - name: invitationId
+      value: b6da2a35-0836-417b-a994-d27c257585f4
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
