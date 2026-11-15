@@ -33,6 +33,7 @@ import pl.kaitoudev.tabkeeper.service.group.domain.entity.GroupInvitation;
 import pl.kaitoudev.tabkeeper.service.group.domain.exception.AlreadyAMemberException;
 import pl.kaitoudev.tabkeeper.service.group.domain.exception.AlreadyInvitedException;
 import pl.kaitoudev.tabkeeper.service.group.domain.exception.GroupNameAlreadyTakenException;
+import pl.kaitoudev.tabkeeper.service.group.domain.exception.InvalidCurrencyCodeException;
 import pl.kaitoudev.tabkeeper.service.group.domain.exception.NonexistentGroupException;
 import pl.kaitoudev.tabkeeper.service.group.domain.exception.NonexistentInvitationException;
 import pl.kaitoudev.tabkeeper.service.group.domain.mapper.GroupInfoMapper;
@@ -56,11 +57,21 @@ public class GroupGrpcService extends GroupServiceGrpc.GroupServiceImplBase {
 
     try {
       newGroup =
-          groupService.createGroup(request.getGroupName(), UUID.fromString(request.getOwnerId()));
+          groupService.createGroup(
+              request.getGroupName(),
+              UUID.fromString(request.getOwnerId()),
+              request.getCurrencyCode()
+          );
     } catch (GroupNameAlreadyTakenException ex) {
       responseObserver.onError(
           Status.ALREADY_EXISTS
               .withCause(ex)
+              .withDescription(ex.getMessage())
+              .asRuntimeException());
+      return;
+    } catch (InvalidCurrencyCodeException ex) {
+      responseObserver.onError(
+          Status.INVALID_ARGUMENT
               .withDescription(ex.getMessage())
               .asRuntimeException());
       return;
@@ -70,6 +81,7 @@ public class GroupGrpcService extends GroupServiceGrpc.GroupServiceImplBase {
         GroupInfo.newBuilder()
             .setGroupId(newGroup.getId().toString())
             .setGroupName(newGroup.getName())
+            .setCurrencyCode(newGroup.getCurrency())
             .addAllMembers(
                 newGroup.getGroupMemberships().stream().map(GroupMemberMapper::toProtobuf).toList())
             .setCreatedTs(GrpcMappingUtils.toProtobufTimestamp(newGroup.getCreatedTimestamp()))
@@ -98,6 +110,7 @@ public class GroupGrpcService extends GroupServiceGrpc.GroupServiceImplBase {
         GroupInfo.newBuilder()
             .setGroupId(group.getId().toString())
             .setGroupName(group.getName())
+            .setCurrencyCode(group.getCurrency())
             .addAllMembers(
                 group.getGroupMemberships().stream().map(GroupMemberMapper::toProtobuf).toList())
             .setCreatedTs(GrpcMappingUtils.toProtobufTimestamp(group.getCreatedTimestamp()))

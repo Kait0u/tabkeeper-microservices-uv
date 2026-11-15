@@ -11,6 +11,7 @@ import pl.kaitoudev.tabkeeper.service.group.domain.entity.Group;
 import pl.kaitoudev.tabkeeper.service.group.domain.entity.GroupMembership;
 import pl.kaitoudev.tabkeeper.service.group.domain.enums.GroupMembershipRole;
 import pl.kaitoudev.tabkeeper.service.group.domain.exception.GroupNameAlreadyTakenException;
+import pl.kaitoudev.tabkeeper.service.group.domain.exception.InvalidCurrencyCodeException;
 import pl.kaitoudev.tabkeeper.service.group.domain.repository.GroupRepository;
 
 @Slf4j
@@ -29,14 +30,24 @@ public class GroupService {
   }
 
   @Transactional
-  public Group createGroup(String groupName, UUID creatorId) {
+  public Group createGroup(String groupName, UUID creatorId, String currencyCode) {
     if (groupRepository.existsByNameAndRole(groupName, creatorId, GroupMembershipRole.OWNER)) {
       log.warn("User {} already owns a group named \"{}\"", creatorId, groupName);
 
       throw GroupNameAlreadyTakenException.ofName(groupName);
     }
 
-    Group group = Group.builder().name(groupName).createdBy(creatorId).build();
+    if (!currencyCode.matches("^[A-Z]{3}$")) {
+      log.warn("Currency code \"{}\" is not valid.", currencyCode);
+
+      throw InvalidCurrencyCodeException.ofCode(currencyCode);
+    }
+
+    Group group = Group.builder()
+        .name(groupName)
+        .createdBy(creatorId)
+        .currency(currencyCode)
+        .build();
 
     GroupMembership ownership = GroupMembership.createOwner(creatorId);
     group.addGroupMembership(ownership); // This also sets ownership.group

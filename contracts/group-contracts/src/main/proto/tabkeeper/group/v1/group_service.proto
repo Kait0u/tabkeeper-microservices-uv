@@ -32,8 +32,9 @@ enum GroupRole {
 message GroupInfo {
   string group_id = 1;
   string group_name = 2;
-  repeated GroupMember members = 3;
-  google.protobuf.Timestamp created_ts = 4;
+  string currency_code = 3;
+  repeated GroupMember members = 4;
+  google.protobuf.Timestamp created_ts = 5;
 }
 
 message GroupMember {
@@ -66,6 +67,7 @@ message InvitationInfo {
 message CreateGroupRequest {
   string owner_id = 1;
   string group_name = 2;
+  string currency_code = 3;
 }
 
 
@@ -143,6 +145,3 @@ message AcceptGroupInvitationResponse {
   string invitation_id = 1;
   string group_id = 2;
 }
-
-
-

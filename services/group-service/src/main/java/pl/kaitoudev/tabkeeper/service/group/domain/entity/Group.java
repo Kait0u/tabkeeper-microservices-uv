@@ -40,6 +40,9 @@ public class Group {
   @Column(name = "created_by", nullable = false)
   private UUID createdBy;
 
+  @Column(name = "currency", nullable = false)
+  private String currency;
+
   @Column(name = "created_ts", nullable = false)
   @Builder.Default
   private Instant createdTimestamp = Instant.now();
