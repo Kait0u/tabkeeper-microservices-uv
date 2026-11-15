@@ -11,7 +11,8 @@ http:
     data: |-
       {
         "ownerId": "948f125a-666f-484d-a755-49c826a3e2a4",
-        "groupName": "AliceGroup01"
+        "groupName": "AliceGroup01",
+        "currencyCode": "USD"
       }
   auth: inherit
 

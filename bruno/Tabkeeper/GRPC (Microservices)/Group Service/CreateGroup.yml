@@ -13,6 +13,7 @@ grpc:
       message: |-
         {
           "owner_id": "948f125a-666f-484d-a755-49c826a3e2a4",
-          "group_name": "AliceGroup01"
+          "group_name": "AliceGroup01",
+          "currency_code": "USD"
         }
   auth: inherit
