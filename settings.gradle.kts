@@ -20,6 +20,7 @@ include(
     // Contracts
     "contracts:user-contracts",
     "contracts:group-contracts",
+    "contracts:expense-contracts",
 
     // Infra
     "infra:gateway",

@@ -1,0 +1,155 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package tabkeeper.expense.v1;
+
+option java_package = "pl.kaitoudev.tabkeeper.proto.expense.v1";
+option java_multiple_files = true;
+
+service ExpenseService {
+  // Expenses
+  rpc CreateExpense(CreateExpenseRequest) returns (ExpenseInfo);
+  rpc GetExpense(GetExpenseRequest) returns (ExpenseInfo);
+  rpc GetAllExpensesInGroup(GetAllExpensesInGroupRequest) returns (ExpensesInGroup);
+  rpc GetAllExpensesInGroupOfUser(GetAllExpensesInGroupOfUserRequest) returns (ExpensesInGroupOfUser);
+
+  // Aggregated Balance
+  rpc GetGroupBalance(GetGroupBalanceRequest) returns (GroupBalance);
+
+  // Repayments
+  rpc CreateRepayment(CreateRepaymentRequest) returns (RepaymentInfo);
+  rpc GetRepayment(GetRepaymentRequest) returns (RepaymentInfo);
+  rpc GetAllRepaymentsInGroup(GetAllRepaymentsInGroupRequest) returns (RepaymentsInGroup);
+  rpc GetAllRepaymentsInGroupOfUser(GetAllRepaymentsInGroupOfUserRequest) returns (RepaymentsInGroupOfUser);
+}
+
+// -----------------------------------------------------------------------------
+// SHARED
+// -----------------------------------------------------------------------------
+
+message MonetaryAmount {
+  string value = 1;
+  string currency = 2;
+}
+
+// A participant's share of an expense.
+message ExpenseAllocation {
+  string user_id = 1;
+  MonetaryAmount amount = 2;
+}
+
+// An outstanding directed balance after reciprocal debts have been netted.
+message DirectedBalance {
+  string debtor_user_id = 1;
+  string creditor_user_id = 2;
+  MonetaryAmount remaining_amount = 3;
+}
+
+// A portion of a repayment applied to an existing debt.
+message RepaymentAllocationInfo {
+  string origin_expense_id = 1;
+  MonetaryAmount applied_amount = 2;
+}
+
+message ExpenseInfo {
+  string expense_id = 1;
+  string group_id = 2;
+  string paying_user_id = 3;
+  MonetaryAmount money_amount = 4;
+  repeated ExpenseAllocation allocations = 5;
+  google.protobuf.Timestamp created_ts = 6;
+}
+
+message RepaymentInfo {
+  string repayment_id = 1;
+  string group_id = 2;
+  string reporting_user_id = 3;
+  string repaying_user_id = 4;
+  string recipient_user_id = 5;
+  MonetaryAmount money_amount = 6;
+  google.protobuf.Timestamp created_ts = 7;
+  repeated RepaymentAllocationInfo allocations = 8;
+}
+
+// -----------------------------------------------------------------------------
+// DTOs
+// -----------------------------------------------------------------------------
+
+message CreateExpenseRequest {
+  string group_id = 1;
+  string paying_user_id = 2;
+  MonetaryAmount money_amount = 3;
+  repeated ExpenseAllocation allocations = 4;
+}
+
+message GetExpenseRequest {
+  string expense_id = 1;
+}
+
+message GetAllExpensesInGroupRequest {
+  string group_id = 1;
+}
+
+message ExpensesInGroup {
+  string group_id = 1;
+  repeated ExpenseInfo expenses = 2;
+}
+
+message GetAllExpensesInGroupOfUserRequest {
+  string group_id = 1;
+  string user_id = 2;
+}
+
+// Expenses where the user is the payer or an allocation participant.
+message ExpensesInGroupOfUser {
+  string group_id = 1;
+  string user_id = 2;
+  repeated ExpenseInfo expenses = 3;
+}
+
+message GetGroupBalanceRequest {
+  string group_id = 1;
+}
+
+message GroupBalance {
+  string group_id = 1;
+  repeated DirectedBalance balances = 2;
+}
+
+message CreateRepaymentRequest {
+  string group_id = 1;
+
+  // 2 & 3 or 2 & 4 will be the same value.
+  string reporting_user_id = 2;
+  string repaying_user_id = 3;
+  string recipient_user_id = 4;
+
+  MonetaryAmount money_amount = 5;
+}
+
+message GetRepaymentRequest {
+  string group_id = 1;
+  string repayment_id = 2;
+}
+
+message GetAllRepaymentsInGroupRequest {
+  string group_id = 1;
+}
+
+message RepaymentsInGroup {
+  string group_id = 1;
+  repeated RepaymentInfo repayments = 2;
+}
+
+message GetAllRepaymentsInGroupOfUserRequest {
+  string group_id = 1;
+  string user_id = 2;
+}
+
+// Repayments where the user is the repayer or recipient.
+message RepaymentsInGroupOfUser {
+  string group_id = 1;
+  string user_id = 2;
+  repeated RepaymentInfo repayments = 3;
+}
