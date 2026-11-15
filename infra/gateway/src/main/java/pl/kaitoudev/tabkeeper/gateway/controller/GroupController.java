@@ -41,10 +41,7 @@ public class GroupController {
       @Valid @RequestBody CreateGroupRequest request) {
     GroupDetails group =
         groupGrpcClient.createGroup(
-            request.ownerId().toString(),
-            request.groupName(),
-            request.currencyCode()
-        );
+            request.ownerId().toString(), request.groupName(), request.currencyCode());
 
     CreateGroupResponse responseDto =
         CreateGroupResponse.builder()

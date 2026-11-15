@@ -8,4 +8,8 @@ import lombok.Builder;
 /** Group details returned by the REST API. */
 @Builder
 public record GetGroupDetailsResponse(
-    UUID groupId, String groupName, String currencyCode, List<GroupMemberResponse> members, Instant createdAt) {}
+    UUID groupId,
+    String groupName,
+    String currencyCode,
+    List<GroupMemberResponse> members,
+    Instant createdAt) {}

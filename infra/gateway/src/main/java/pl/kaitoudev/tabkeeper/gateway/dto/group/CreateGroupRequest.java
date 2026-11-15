@@ -6,7 +6,4 @@ import java.util.UUID;
 
 /** Group creation input; the owner identifier is supplied without authentication. */
 public record CreateGroupRequest(
-    @NotNull UUID ownerId,
-    @NotBlank String groupName,
-    @NotBlank String currencyCode
-) {}
+    @NotNull UUID ownerId, @NotBlank String groupName, @NotBlank String currencyCode) {}

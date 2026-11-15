@@ -8,4 +8,8 @@ import lombok.Builder;
 /** Details of a newly created group, including its owner membership. */
 @Builder
 public record CreateGroupResponse(
-    UUID groupId, String groupName, String currencyCode, List<GroupMemberResponse> members, Instant createdAt) {}
+    UUID groupId,
+    String groupName,
+    String currencyCode,
+    List<GroupMemberResponse> members,
+    Instant createdAt) {}

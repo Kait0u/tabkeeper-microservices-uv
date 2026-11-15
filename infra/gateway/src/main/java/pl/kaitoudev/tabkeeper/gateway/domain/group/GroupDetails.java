@@ -11,7 +11,5 @@ public record GroupDetails(
     UUID groupId,
     String groupName,
     String currencyCode,
-    List<GroupMemberDetails>
-    members,
-    Instant createdAt
-) {}
+    List<GroupMemberDetails> members,
+    Instant createdAt) {}

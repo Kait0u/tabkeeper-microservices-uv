@@ -43,11 +43,8 @@ public class GroupService {
       throw InvalidCurrencyCodeException.ofCode(currencyCode);
     }
 
-    Group group = Group.builder()
-        .name(groupName)
-        .createdBy(creatorId)
-        .currency(currencyCode)
-        .build();
+    Group group =
+        Group.builder().name(groupName).createdBy(creatorId).currency(currencyCode).build();
 
     GroupMembership ownership = GroupMembership.createOwner(creatorId);
     group.addGroupMembership(ownership); // This also sets ownership.group

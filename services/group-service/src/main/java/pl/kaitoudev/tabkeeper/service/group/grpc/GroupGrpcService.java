@@ -60,8 +60,7 @@ public class GroupGrpcService extends GroupServiceGrpc.GroupServiceImplBase {
           groupService.createGroup(
               request.getGroupName(),
               UUID.fromString(request.getOwnerId()),
-              request.getCurrencyCode()
-          );
+              request.getCurrencyCode());
     } catch (GroupNameAlreadyTakenException ex) {
       responseObserver.onError(
           Status.ALREADY_EXISTS
@@ -71,9 +70,7 @@ public class GroupGrpcService extends GroupServiceGrpc.GroupServiceImplBase {
       return;
     } catch (InvalidCurrencyCodeException ex) {
       responseObserver.onError(
-          Status.INVALID_ARGUMENT
-              .withDescription(ex.getMessage())
-              .asRuntimeException());
+          Status.INVALID_ARGUMENT.withDescription(ex.getMessage()).asRuntimeException());
       return;
     }
 
