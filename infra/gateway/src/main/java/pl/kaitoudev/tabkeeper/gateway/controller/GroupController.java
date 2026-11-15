@@ -40,12 +40,17 @@ public class GroupController {
   public ResponseEntity<CreateGroupResponse> createGroup(
       @Valid @RequestBody CreateGroupRequest request) {
     GroupDetails group =
-        groupGrpcClient.createGroup(request.ownerId().toString(), request.groupName());
+        groupGrpcClient.createGroup(
+            request.ownerId().toString(),
+            request.groupName(),
+            request.currencyCode()
+        );
 
     CreateGroupResponse responseDto =
         CreateGroupResponse.builder()
             .groupId(group.groupId())
             .groupName(group.groupName())
+            .currencyCode(group.currencyCode())
             .members(toMemberResponses(group))
             .createdAt(group.createdAt())
             .build();
@@ -64,6 +69,7 @@ public class GroupController {
         GetGroupDetailsResponse.builder()
             .groupId(group.groupId())
             .groupName(group.groupName())
+            .currencyCode(group.currencyCode())
             .members(toMemberResponses(group))
             .createdAt(group.createdAt())
             .build();

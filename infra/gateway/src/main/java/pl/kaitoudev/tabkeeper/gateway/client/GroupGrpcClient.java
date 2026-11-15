@@ -55,9 +55,13 @@ public class GroupGrpcClient {
   }
 
   /** Creates a group with the supplied user as owner. */
-  public GroupDetails createGroup(String ownerId, String groupName) {
+  public GroupDetails createGroup(String ownerId, String groupName, String currencyCode) {
     CreateGroupRequest request =
-        CreateGroupRequest.newBuilder().setOwnerId(ownerId).setGroupName(groupName).build();
+        CreateGroupRequest.newBuilder()
+            .setOwnerId(ownerId)
+            .setGroupName(groupName)
+            .setCurrencyCode(currencyCode)
+            .build();
 
     GroupInfo response = holder.getStub().withDeadlineAfter(WRITE_TIMEOUT).createGroup(request);
 
@@ -156,6 +160,7 @@ public class GroupGrpcClient {
     return GroupDetails.builder()
         .groupId(UUID.fromString(response.getGroupId()))
         .groupName(response.getGroupName())
+        .currencyCode(response.getCurrencyCode())
         .members(response.getMembersList().stream().map(GroupGrpcClient::toMemberDetails).toList())
         .createdAt(GrpcMappingUtils.fromProtobufTimestamp(response.getCreatedTs()))
         .build();

@@ -8,4 +8,10 @@ import lombok.Builder;
 /** A group's details, independent of its gRPC representation. */
 @Builder
 public record GroupDetails(
-    UUID groupId, String groupName, List<GroupMemberDetails> members, Instant createdAt) {}
+    UUID groupId,
+    String groupName,
+    String currencyCode,
+    List<GroupMemberDetails>
+    members,
+    Instant createdAt
+) {}
