@@ -5,6 +5,7 @@ plugins {
 dependencies {
     // Contract
     implementation(project(":contracts:expense-contracts"))
+    implementation(project(":contracts:group-contracts"))
 
     // gRPC
     implementation(libs.spring.boot.grpc.server)

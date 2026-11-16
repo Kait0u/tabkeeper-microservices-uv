@@ -6,10 +6,35 @@ spring:
     config:
       enabled: false
 
+  datasource:
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  grpc:
+    server:
+      port: 9090
+
 eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+    non-secure-port: ${spring.grpc.server.port}
+    metadata-map:
+      gRPC_port: ${spring.grpc.server.port}
+
+tabkeeper:
+  grpc:
+    discovery-refresh-interval: ${GRPC_DISCOVERY_REFRESH_INTERVAL:PT5S}
 
 logging:
   level:
