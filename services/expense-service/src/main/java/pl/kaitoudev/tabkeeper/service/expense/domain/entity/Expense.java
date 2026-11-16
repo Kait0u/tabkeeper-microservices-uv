@@ -1,5 +1,6 @@
 package pl.kaitoudev.tabkeeper.service.expense.domain.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -60,7 +61,13 @@ public class Expense {
   @JoinColumn(name = "group_id", nullable = false)
   private ExpenseGroup group;
 
-  @OneToMany(mappedBy = "expense")
+  @OneToMany(mappedBy = "expense", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default
   private Set<ExpenseAllocation> allocations = new HashSet<>();
+
+  /** Associates a participant share with this expense before it is persisted. */
+  public void addAllocation(ExpenseAllocation allocation) {
+    allocation.setExpense(this);
+    allocations.add(allocation);
+  }
 }

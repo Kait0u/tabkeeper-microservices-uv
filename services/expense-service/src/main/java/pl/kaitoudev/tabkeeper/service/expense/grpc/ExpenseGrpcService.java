@@ -1,6 +1,10 @@
 package pl.kaitoudev.tabkeeper.service.expense.grpc;
 
 import io.grpc.stub.StreamObserver;
+import java.math.BigDecimal;
+import java.util.Comparator;
+import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.grpc.server.service.GrpcService;
@@ -18,19 +22,83 @@ import pl.kaitoudev.tabkeeper.proto.expense.v1.GetExpenseRequest;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.GetGroupBalanceRequest;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.GetRepaymentRequest;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.GroupBalance;
+import pl.kaitoudev.tabkeeper.proto.expense.v1.MonetaryAmount;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.RepaymentInfo;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.RepaymentsInGroup;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.RepaymentsInGroupOfUser;
+import pl.kaitoudev.tabkeeper.service.expense.domain.entity.Expense;
+import pl.kaitoudev.tabkeeper.service.expense.domain.entity.ExpenseAllocation;
+import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidExpenseException;
+import pl.kaitoudev.tabkeeper.service.expense.domain.service.ExpenseService;
+import pl.kaitoudev.tabkeeper.shared.grpc.GrpcMappingUtils;
 
 @Slf4j
 @GrpcService
 @RequiredArgsConstructor
 public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBase {
+  private final ExpenseService expenseService;
 
+  /** Creates an expense and returns its persisted details, including participant shares. */
   @Override
   public void createExpense(
       CreateExpenseRequest request, StreamObserver<ExpenseInfo> responseObserver) {
-    super.createExpense(request, responseObserver);
+    MonetaryAmount moneyAmount = request.getMoneyAmount();
+    List<ExpenseAllocation> allocations =
+        request.getAllocationsList().stream()
+            .map(allocation -> toExpenseAllocation(allocation, moneyAmount.getCurrency()))
+            .toList();
+
+    Expense expense =
+        expenseService.createExpense(
+            UUID.fromString(request.getGroupId()),
+            UUID.fromString(request.getPayingUserId()),
+            new BigDecimal(moneyAmount.getValue()),
+            moneyAmount.getCurrency(),
+            allocations);
+
+    ExpenseInfo response =
+        ExpenseInfo.newBuilder()
+            .setExpenseId(expense.getId().toString())
+            .setGroupId(expense.getGroup().getGroupId().toString())
+            .setPayingUserId(expense.getPayingUserId().toString())
+            .setMoneyAmount(
+                toMonetaryAmount(expense.getAmount().toPlainString(), expense.getCurrency()))
+            .addAllAllocations(
+                expense.getAllocations().stream()
+                    .sorted(Comparator.comparing(ExpenseAllocation::getUserId))
+                    .map(
+                        allocation ->
+                            pl.kaitoudev.tabkeeper.proto.expense.v1.ExpenseAllocation.newBuilder()
+                                .setUserId(allocation.getUserId().toString())
+                                .setAmount(
+                                    toMonetaryAmount(
+                                        allocation.getAmount().toPlainString(),
+                                        expense.getCurrency()))
+                                .build())
+                    .toList())
+            .setCreatedTs(GrpcMappingUtils.toProtobufTimestamp(expense.getCreatedTs()))
+            .build();
+
+    responseObserver.onNext(response);
+    responseObserver.onCompleted();
+  }
+
+  /** Maps a participant share and rejects a currency that differs from the expense currency. */
+  private static ExpenseAllocation toExpenseAllocation(
+      pl.kaitoudev.tabkeeper.proto.expense.v1.ExpenseAllocation allocation, String currency) {
+    if (!currency.equals(allocation.getAmount().getCurrency())) {
+      throw InvalidExpenseException.ofMessage("Every allocation must use the expense's currency.");
+    }
+
+    return ExpenseAllocation.builder()
+        .userId(UUID.fromString(allocation.getUserId()))
+        .amount(new BigDecimal(allocation.getAmount().getValue()))
+        .build();
+  }
+
+  /** Creates a protobuf monetary amount with the supplied exact decimal representation. */
+  private static MonetaryAmount toMonetaryAmount(String value, String currency) {
+    return MonetaryAmount.newBuilder().setValue(value).setCurrency(currency).build();
   }
 
   @Override

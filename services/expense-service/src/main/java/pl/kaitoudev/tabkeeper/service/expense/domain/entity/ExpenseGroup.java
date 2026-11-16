@@ -32,6 +32,13 @@ public class ExpenseGroup {
   @Builder.Default
   private Long nextSequence = 1L;
 
+  /** Allocates the next group-local sequence for an expense or repayment. */
+  public long allocateNextSequence() {
+    long allocatedSequence = nextSequence;
+    nextSequence = Math.incrementExact(nextSequence);
+    return allocatedSequence;
+  }
+
   @OneToMany(mappedBy = "group")
   @Builder.Default
   private Set<Expense> groupExpenses = new HashSet<>();
