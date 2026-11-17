@@ -1,7 +1,6 @@
 package pl.kaitoudev.tabkeeper.service.expense.grpc.advice;
 
 import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.grpc.server.advice.GrpcAdvice;
 import org.springframework.grpc.server.advice.GrpcExceptionHandler;
@@ -17,12 +16,6 @@ public class GlobalGrpcExceptionHandler {
     log.warn("Invalid expense request: {}", ex.getMessage());
 
     return Status.INVALID_ARGUMENT.withDescription(ex.getMessage());
-  }
-
-  /** Preserves the status returned by an upstream gRPC service. */
-  @GrpcExceptionHandler(StatusRuntimeException.class)
-  public Status handleUpstreamStatus(StatusRuntimeException ex) {
-    return ex.getStatus();
   }
 
   /** Prevents unexpected failures from exposing implementation details to clients. */

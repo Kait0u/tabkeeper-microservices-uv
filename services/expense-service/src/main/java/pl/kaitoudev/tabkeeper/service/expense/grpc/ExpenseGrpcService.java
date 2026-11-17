@@ -1,5 +1,6 @@
 package pl.kaitoudev.tabkeeper.service.expense.grpc;
 
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -26,9 +27,12 @@ import pl.kaitoudev.tabkeeper.proto.expense.v1.MonetaryAmount;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.RepaymentInfo;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.RepaymentsInGroup;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.RepaymentsInGroupOfUser;
+import pl.kaitoudev.tabkeeper.service.expense.client.exception.GroupServiceRequestException;
+import pl.kaitoudev.tabkeeper.service.expense.client.exception.GroupServiceUnavailableException;
 import pl.kaitoudev.tabkeeper.service.expense.domain.entity.Expense;
 import pl.kaitoudev.tabkeeper.service.expense.domain.entity.ExpenseAllocation;
 import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidExpenseException;
+import pl.kaitoudev.tabkeeper.service.expense.domain.exception.NonexistentGroupException;
 import pl.kaitoudev.tabkeeper.service.expense.domain.service.ExpenseService;
 import pl.kaitoudev.tabkeeper.shared.grpc.GrpcMappingUtils;
 
@@ -48,13 +52,31 @@ public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBas
             .map(allocation -> toExpenseAllocation(allocation, moneyAmount.getCurrency()))
             .toList();
 
-    Expense expense =
-        expenseService.createExpense(
-            UUID.fromString(request.getGroupId()),
-            UUID.fromString(request.getPayingUserId()),
-            new BigDecimal(moneyAmount.getValue()),
-            moneyAmount.getCurrency(),
-            allocations);
+    Expense expense;
+    try {
+      expense =
+          expenseService.createExpense(
+              UUID.fromString(request.getGroupId()),
+              UUID.fromString(request.getPayingUserId()),
+              new BigDecimal(moneyAmount.getValue()),
+              moneyAmount.getCurrency(),
+              allocations);
+    } catch (NonexistentGroupException ex) {
+      responseObserver.onError(
+          Status.NOT_FOUND.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
+      return;
+    } catch (GroupServiceUnavailableException ex) {
+      responseObserver.onError(
+          Status.UNAVAILABLE.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
+      return;
+    } catch (GroupServiceRequestException ex) {
+      responseObserver.onError(
+          Status.INTERNAL
+              .withCause(ex)
+              .withDescription("Group Service could not provide the requested group.")
+              .asRuntimeException());
+      return;
+    }
 
     ExpenseInfo response =
         ExpenseInfo.newBuilder()
