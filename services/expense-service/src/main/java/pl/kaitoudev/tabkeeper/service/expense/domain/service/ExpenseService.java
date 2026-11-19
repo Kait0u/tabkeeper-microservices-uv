@@ -2,8 +2,12 @@ package pl.kaitoudev.tabkeeper.service.expense.domain.service;
 
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +19,7 @@ import pl.kaitoudev.tabkeeper.service.expense.domain.entity.ExpenseAllocation;
 import pl.kaitoudev.tabkeeper.service.expense.domain.entity.ExpenseGroup;
 import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidExpenseException;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.GroupDetails;
+import pl.kaitoudev.tabkeeper.service.expense.domain.model.UserExpenseHistory;
 import pl.kaitoudev.tabkeeper.service.expense.domain.repository.ExpenseGroupRepository;
 import pl.kaitoudev.tabkeeper.service.expense.domain.repository.ExpenseRepository;
 
@@ -23,6 +28,7 @@ import pl.kaitoudev.tabkeeper.service.expense.domain.repository.ExpenseRepositor
 @Slf4j
 @RequiredArgsConstructor
 public class ExpenseService {
+
   private static final int MAX_AMOUNT_PRECISION = 17;
   private static final int AMOUNT_SCALE = 2;
 
@@ -98,9 +104,7 @@ public class ExpenseService {
     if (allocations.isEmpty()) {
       throw InvalidExpenseException.ofMessage("An expense requires at least one allocation.");
     }
-    if (!group.memberIds().contains(payingUserId)) {
-      throw InvalidExpenseException.ofMessage("The paying user must be a member of the group.");
-    }
+    validateUserBelongsToGroup(payingUserId, group);
 
     Set<UUID> participantIds = new HashSet<>();
     BigDecimal allocatedTotal = BigDecimal.ZERO;
@@ -126,6 +130,12 @@ public class ExpenseService {
     }
   }
 
+  private static void validateUserBelongsToGroup(UUID userId, GroupDetails group) {
+    if (!group.isMember(userId)) {
+      throw InvalidExpenseException.ofMessage("The paying user must be a member of the group.");
+    }
+  }
+
   /** Checks a positive or non-negative exact monetary value against the schema's limits. */
   private static void validateAmount(BigDecimal amount, String fieldName, boolean allowZero) {
     if (amount == null) {
@@ -139,5 +149,50 @@ public class ExpenseService {
       throw InvalidExpenseException.ofMessage(
           "%s must be %s.".formatted(fieldName, allowZero ? "non-negative" : "positive"));
     }
+  }
+
+  public Optional<Expense> getExpense(UUID expenseId) {
+    return expenseRepository.findByIdWithAllocations(expenseId);
+  }
+
+  public List<Expense> getAllExpensesInGroup(UUID groupId) {
+    // No need for a call to the gRPC service at first. We may have it in our
+    Optional<ExpenseGroup> optExpenseGroup =
+        expenseGroupRepository.findByGroupIdWithExpensesAndAllocations(groupId);
+
+    List<Expense> expenses = new ArrayList<>();
+
+    optExpenseGroup.ifPresentOrElse(
+        expenseGroup -> expenses.addAll(expenseGroup.getGroupExpenses()),
+        () -> {
+          // Will throw if it doesn't exist.
+          groupGrpcClient.getGroup(groupId);
+        });
+
+    expenses.sort(Comparator.comparingLong(Expense::getSequence));
+
+    log.info("Retrieved all expenses in group {}. {} expenses found.", groupId, expenses.size());
+
+    return Collections.unmodifiableList(expenses);
+  }
+
+  /** Retrieves a group member's paid and allocated expense histories with one group lookup. */
+  public UserExpenseHistory getAllExpensesInGroupOfUser(UUID groupId, UUID userId) {
+    GroupDetails group = groupGrpcClient.getGroup(groupId);
+    validateUserBelongsToGroup(userId, group);
+
+    List<Expense> paidExpenses =
+        expenseRepository.findAllPaidByUserWithAllocations(groupId, userId);
+    List<Expense> allocatedExpenses =
+        expenseRepository.findAllAllocatedToUserWithAllocations(groupId, userId);
+
+    log.info(
+        "Retrieved expenses in group {} for user {}: {} paid, {} allocated.",
+        groupId,
+        userId,
+        paidExpenses.size(),
+        allocatedExpenses.size());
+
+    return new UserExpenseHistory(paidExpenses, allocatedExpenses);
   }
 }

@@ -10,4 +10,8 @@ import java.util.UUID;
  * @param currency currency configured by Group Service
  * @param memberIds identifiers of the group's current members
  */
-public record GroupDetails(UUID groupId, String currency, Set<UUID> memberIds) {}
+public record GroupDetails(UUID groupId, String currency, Set<UUID> memberIds) {
+  public boolean isMember(UUID userId) {
+    return memberIds.contains(userId);
+  }
+}

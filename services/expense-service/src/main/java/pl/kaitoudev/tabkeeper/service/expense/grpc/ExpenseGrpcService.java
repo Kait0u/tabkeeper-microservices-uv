@@ -5,9 +5,11 @@ import io.grpc.stub.StreamObserver;
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.grpc.server.service.GrpcService;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.CreateExpenseRequest;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.CreateRepaymentRequest;
@@ -33,6 +35,7 @@ import pl.kaitoudev.tabkeeper.service.expense.domain.entity.Expense;
 import pl.kaitoudev.tabkeeper.service.expense.domain.entity.ExpenseAllocation;
 import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidExpenseException;
 import pl.kaitoudev.tabkeeper.service.expense.domain.exception.NonexistentGroupException;
+import pl.kaitoudev.tabkeeper.service.expense.domain.model.UserExpenseHistory;
 import pl.kaitoudev.tabkeeper.service.expense.domain.service.ExpenseService;
 import pl.kaitoudev.tabkeeper.shared.grpc.GrpcMappingUtils;
 
@@ -40,6 +43,7 @@ import pl.kaitoudev.tabkeeper.shared.grpc.GrpcMappingUtils;
 @GrpcService
 @RequiredArgsConstructor
 public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBase {
+
   private final ExpenseService expenseService;
 
   /** Creates an expense and returns its persisted details, including participant shares. */
@@ -78,31 +82,33 @@ public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBas
       return;
     }
 
-    ExpenseInfo response =
-        ExpenseInfo.newBuilder()
-            .setExpenseId(expense.getId().toString())
-            .setGroupId(expense.getGroup().getGroupId().toString())
-            .setPayingUserId(expense.getPayingUserId().toString())
-            .setMoneyAmount(
-                toMonetaryAmount(expense.getAmount().toPlainString(), expense.getCurrency()))
-            .addAllAllocations(
-                expense.getAllocations().stream()
-                    .sorted(Comparator.comparing(ExpenseAllocation::getUserId))
-                    .map(
-                        allocation ->
-                            pl.kaitoudev.tabkeeper.proto.expense.v1.ExpenseAllocation.newBuilder()
-                                .setUserId(allocation.getUserId().toString())
-                                .setAmount(
-                                    toMonetaryAmount(
-                                        allocation.getAmount().toPlainString(),
-                                        expense.getCurrency()))
-                                .build())
-                    .toList())
-            .setCreatedTs(GrpcMappingUtils.toProtobufTimestamp(expense.getCreatedTs()))
-            .build();
+    ExpenseInfo response = toExpenseInfo(expense);
 
     responseObserver.onNext(response);
     responseObserver.onCompleted();
+  }
+
+  private static @NonNull ExpenseInfo toExpenseInfo(Expense expense) {
+    return ExpenseInfo.newBuilder()
+        .setExpenseId(expense.getId().toString())
+        .setGroupId(expense.getGroup().getGroupId().toString())
+        .setPayingUserId(expense.getPayingUserId().toString())
+        .setMoneyAmount(
+            toMonetaryAmount(expense.getAmount().toPlainString(), expense.getCurrency()))
+        .addAllAllocations(
+            expense.getAllocations().stream()
+                .sorted(Comparator.comparing(ExpenseAllocation::getUserId))
+                .map(
+                    allocation ->
+                        pl.kaitoudev.tabkeeper.proto.expense.v1.ExpenseAllocation.newBuilder()
+                            .setUserId(allocation.getUserId().toString())
+                            .setAmount(
+                                toMonetaryAmount(
+                                    allocation.getAmount().toPlainString(), expense.getCurrency()))
+                            .build())
+                .toList())
+        .setCreatedTs(GrpcMappingUtils.toProtobufTimestamp(expense.getCreatedTs()))
+        .build();
   }
 
   /** Maps a participant share and rejects a currency that differs from the expense currency. */
@@ -125,20 +131,104 @@ public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBas
 
   @Override
   public void getExpense(GetExpenseRequest request, StreamObserver<ExpenseInfo> responseObserver) {
-    super.getExpense(request, responseObserver);
+    UUID expenseId = UUID.fromString(request.getExpenseId());
+
+    Optional<Expense> optExpense = expenseService.getExpense(expenseId);
+
+    if (optExpense.isEmpty()) {
+      responseObserver.onError(
+          Status.NOT_FOUND
+              .withDescription("Expense ID=%s not found.".formatted(expenseId.toString()))
+              .asRuntimeException());
+      return;
+    }
+
+    Expense expense = optExpense.get();
+    ExpenseInfo response = toExpenseInfo(expense);
+
+    responseObserver.onNext(response);
+    responseObserver.onCompleted();
   }
 
   @Override
   public void getAllExpensesInGroup(
       GetAllExpensesInGroupRequest request, StreamObserver<ExpensesInGroup> responseObserver) {
-    super.getAllExpensesInGroup(request, responseObserver);
+    UUID groupId = UUID.fromString(request.getGroupId());
+
+    List<Expense> expensesInGroup;
+    try {
+      expensesInGroup = expenseService.getAllExpensesInGroup(groupId);
+    } catch (NonexistentGroupException ex) {
+      responseObserver.onError(
+          Status.NOT_FOUND.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
+      return;
+    } catch (GroupServiceUnavailableException ex) {
+      responseObserver.onError(
+          Status.UNAVAILABLE.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
+      return;
+    } catch (GroupServiceRequestException ex) {
+      responseObserver.onError(
+          Status.INTERNAL
+              .withCause(ex)
+              .withDescription("Group Service could not provide the requested group.")
+              .asRuntimeException());
+      return;
+    }
+
+    ExpensesInGroup response =
+        ExpensesInGroup.newBuilder()
+            .setGroupId(groupId.toString())
+            .addAllExpenses(
+                expensesInGroup.stream().map(ExpenseGrpcService::toExpenseInfo).toList())
+            .build();
+
+    responseObserver.onNext(response);
+    responseObserver.onCompleted();
   }
 
   @Override
   public void getAllExpensesInGroupOfUser(
       GetAllExpensesInGroupOfUserRequest request,
       StreamObserver<ExpensesInGroupOfUser> responseObserver) {
-    super.getAllExpensesInGroupOfUser(request, responseObserver);
+    UUID groupId = UUID.fromString(request.getGroupId());
+    UUID userId = UUID.fromString(request.getUserId());
+
+    UserExpenseHistory expenseHistory;
+    try {
+      expenseHistory = expenseService.getAllExpensesInGroupOfUser(groupId, userId);
+    } catch (NonexistentGroupException ex) {
+      responseObserver.onError(
+          Status.NOT_FOUND.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
+      return;
+    } catch (GroupServiceUnavailableException ex) {
+      responseObserver.onError(
+          Status.UNAVAILABLE.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
+      return;
+    } catch (GroupServiceRequestException ex) {
+      responseObserver.onError(
+          Status.INTERNAL
+              .withCause(ex)
+              .withDescription("Group Service could not provide the requested group.")
+              .asRuntimeException());
+      return;
+    }
+
+    ExpensesInGroupOfUser response =
+        ExpensesInGroupOfUser.newBuilder()
+            .setGroupId(groupId.toString())
+            .setUserId(userId.toString())
+            .addAllExpensesPaid(
+                expenseHistory.paidExpenses().stream()
+                    .map(ExpenseGrpcService::toExpenseInfo)
+                    .toList())
+            .addAllExpensesAllocated(
+                expenseHistory.allocatedExpenses().stream()
+                    .map(ExpenseGrpcService::toExpenseInfo)
+                    .toList())
+            .build();
+
+    responseObserver.onNext(response);
+    responseObserver.onCompleted();
   }
 
   @Override

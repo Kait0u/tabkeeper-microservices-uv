@@ -105,7 +105,8 @@ message GetAllExpensesInGroupOfUserRequest {
 message ExpensesInGroupOfUser {
   string group_id = 1;
   string user_id = 2;
-  repeated ExpenseInfo expenses = 3;
+  repeated ExpenseInfo expenses_paid = 3;
+  repeated ExpenseInfo expenses_allocated = 4;
 }
 
 message GetGroupBalanceRequest {
