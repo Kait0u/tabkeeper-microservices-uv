@@ -3,7 +3,7 @@ package pl.kaitoudev.tabkeeper.service.expense.client.exception;
 import java.util.UUID;
 
 /** Indicates that Group Service could not be reached or did not respond before the deadline. */
-public class GroupServiceUnavailableException extends RuntimeException {
+public class GroupServiceUnavailableException extends GroupServiceException {
 
   /** Creates an exception with the supplied dependency-failure message and cause. */
   public GroupServiceUnavailableException(String message, Throwable cause) {

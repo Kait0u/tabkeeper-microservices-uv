@@ -3,7 +3,7 @@ package pl.kaitoudev.tabkeeper.service.expense.client.exception;
 import java.util.UUID;
 
 /** Indicates that Group Service rejected or failed a request for an unexpected reason. */
-public class GroupServiceRequestException extends RuntimeException {
+public class GroupServiceRequestException extends GroupServiceException {
 
   /** Creates an exception with the supplied dependency-failure message and cause. */
   public GroupServiceRequestException(String message, Throwable cause) {
