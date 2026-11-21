@@ -7,16 +7,19 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import pl.kaitoudev.tabkeeper.service.expense.domain.entity.Expense;
 import pl.kaitoudev.tabkeeper.service.expense.domain.entity.ExpenseAllocation;
 import pl.kaitoudev.tabkeeper.service.expense.domain.entity.Repayment;
+import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidFinancialHistoryException;
 import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidRepaymentException;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.DebtFragment;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.DebtKey;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.DirectedDebt;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.GroupBalanceResult;
+import pl.kaitoudev.tabkeeper.service.expense.domain.model.RepaymentAllocation;
 
 /** Replays a group's financial history to calculate its current directed balances. */
 @Component
@@ -28,9 +31,29 @@ public class GroupBalanceCalculator {
       List<Expense> expenses, List<Repayment> repayments, String currency) {
     Map<DebtKey, List<DebtFragment>> debts = new HashMap<>();
 
-    replayInSequenceOrder(expenses, repayments, debts);
+    replayExistingHistory(expenses, repayments, debts);
 
     return summarizeRemainingDebts(debts, currency);
+  }
+
+  /** Replays existing history and applies a candidate repayment, returning its FIFO allocations. */
+  public List<RepaymentAllocation> calculateRepayment(
+      List<Expense> expenses, List<Repayment> repayments, Repayment candidate) {
+    Map<DebtKey, List<DebtFragment>> debts = new HashMap<>();
+    replayExistingHistory(expenses, repayments, debts);
+
+    return applyRepayment(candidate, debts);
+  }
+
+  /** Rejects invalid stored history as an internal consistency failure. */
+  private void replayExistingHistory(
+      List<Expense> expenses, List<Repayment> repayments, Map<DebtKey, List<DebtFragment>> debts) {
+    try {
+      replayInSequenceOrder(expenses, repayments, debts);
+    } catch (InvalidRepaymentException ex) {
+      throw InvalidFinancialHistoryException.ofMessage(
+          "Stored repayment history contains an overpayment.", ex);
+    }
   }
 
   /** Applies each transaction exactly once, following the group-local shared sequence. */
@@ -59,7 +82,8 @@ public class GroupBalanceCalculator {
       Expense nextExpense = orderedExpenses.get(expenseIndex);
       Repayment nextRepayment = orderedRepayments.get(repaymentIndex);
       if (nextExpense.getSequence().equals(nextRepayment.getSequence())) {
-        throw new IllegalStateException("Expense and repayment sequences must be distinct.");
+        throw InvalidFinancialHistoryException.ofMessage(
+            "Expense and repayment sequences must be distinct within a group.");
       }
 
       if (nextExpense.getSequence() < nextRepayment.getSequence()) {
@@ -93,7 +117,8 @@ public class GroupBalanceCalculator {
               .build();
 
       // First cancel what the payer already owes this participant.
-      BigDecimal remainingAmount = consumeOldest(reverseDebtKey, allocation.getAmount(), debts);
+      BigDecimal remainingAmount =
+          consumeOldest(reverseDebtKey, allocation.getAmount(), debts).remainingAmount();
 
       if (remainingAmount.signum() > 0) {
         // Only the remainder becomes a new participant-to-payer debt.
@@ -108,8 +133,9 @@ public class GroupBalanceCalculator {
     }
   }
 
-  /** Applies a repayment to the repayer's outstanding debts to the recipient. */
-  private void applyRepayment(Repayment repayment, Map<DebtKey, List<DebtFragment>> debts) {
+  /** Applies a repayment FIFO and returns the expense-derived allocations it consumed. */
+  private List<RepaymentAllocation> applyRepayment(
+      Repayment repayment, Map<DebtKey, List<DebtFragment>> debts) {
     DebtKey repaymentDebtKey =
         DebtKey.builder()
             .debtorId(repayment.getRepayingUserId())
@@ -117,30 +143,46 @@ public class GroupBalanceCalculator {
             .build();
 
     // Repayments reduce only this direction and never create reverse credit.
-    BigDecimal unallocatedAmount = consumeOldest(repaymentDebtKey, repayment.getAmount(), debts);
+    ConsumptionResult consumption = consumeOldest(repaymentDebtKey, repayment.getAmount(), debts);
 
-    if (unallocatedAmount.signum() > 0) {
+    if (consumption.remainingAmount().signum() > 0) {
       throw InvalidRepaymentException.ofMessage(
-          "Repayment %s exceeds the outstanding debt by %s."
-              .formatted(repayment.getId(), unallocatedAmount.toPlainString()));
+          "Repayment from user %s to user %s exceeds the outstanding debt by %s."
+              .formatted(
+                  repayment.getRepayingUserId(),
+                  repayment.getRecipientUserId(),
+                  consumption.remainingAmount().toPlainString()));
     }
+
+    return consumption.consumedFragments().stream()
+        .map(
+            fragment ->
+                RepaymentAllocation.builder()
+                    .originExpenseId(fragment.originExpenseId())
+                    .appliedAmount(fragment.appliedAmount())
+                    .build())
+        .toList();
   }
 
-  /** Consumes debt fragments in FIFO order and returns any amount that could not be applied. */
-  private BigDecimal consumeOldest(
+  /**
+   * Consumes debt fragments in FIFO order and records the origin and amount of each consumption.
+   */
+  private ConsumptionResult consumeOldest(
       DebtKey debtKey, BigDecimal amount, Map<DebtKey, List<DebtFragment>> debts) {
     List<DebtFragment> fragments = debts.get(debtKey);
     if (fragments == null) {
-      return amount;
+      return new ConsumptionResult(amount, List.of());
     }
 
     BigDecimal remainingAmount = amount;
+    List<ConsumedFragment> consumedFragments = new ArrayList<>();
     Iterator<DebtFragment> fragmentIterator = fragments.iterator();
     // Fragments are appended in sequence order, so iteration settles the oldest debts first.
     while (fragmentIterator.hasNext() && remainingAmount.signum() > 0) {
       DebtFragment fragment = fragmentIterator.next();
       BigDecimal consumedAmount = fragment.consume(remainingAmount);
       remainingAmount = remainingAmount.subtract(consumedAmount);
+      consumedFragments.add(new ConsumedFragment(fragment.getOriginExpenseId(), consumedAmount));
 
       if (fragment.isSettled()) {
         fragmentIterator.remove();
@@ -151,7 +193,7 @@ public class GroupBalanceCalculator {
       debts.remove(debtKey);
     }
 
-    return remainingAmount;
+    return new ConsumptionResult(remainingAmount, consumedFragments);
   }
 
   /** Aggregates remaining fragments by direction and returns deterministic balance ordering. */
@@ -177,4 +219,11 @@ public class GroupBalanceCalculator {
 
     return GroupBalanceResult.builder().currency(currency).balances(balances).build();
   }
+
+  /** The amount left after consumption and the fragments consumed along the way. */
+  private record ConsumptionResult(
+      BigDecimal remainingAmount, List<ConsumedFragment> consumedFragments) {}
+
+  /** One consumed fragment's origin and amount, independent of the transaction causing it. */
+  private record ConsumedFragment(UUID originExpenseId, BigDecimal appliedAmount) {}
 }

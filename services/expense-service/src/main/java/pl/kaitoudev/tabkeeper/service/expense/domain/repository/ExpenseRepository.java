@@ -16,6 +16,17 @@ public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
   @Query("SELECT expense FROM Expense expense WHERE expense.id = :expenseId")
   Optional<Expense> findByIdWithAllocations(@Param("expenseId") UUID expenseId);
 
+  /** Retrieves all group expenses with allocations in shared transaction order. */
+  @EntityGraph(attributePaths = {"allocations"})
+  @Query(
+      """
+      SELECT DISTINCT expense
+      FROM Expense expense
+      WHERE expense.group.groupId = :groupId
+      ORDER BY expense.sequence
+      """)
+  List<Expense> findAllByGroupIdWithAllocationsOrdered(@Param("groupId") UUID groupId);
+
   /** Retrieves expenses paid by a group member, with allocations, in transaction order. */
   @EntityGraph(attributePaths = {"allocations"})
   @Query(
