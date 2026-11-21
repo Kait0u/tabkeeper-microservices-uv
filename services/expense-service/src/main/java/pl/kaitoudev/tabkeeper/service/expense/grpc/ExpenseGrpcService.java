@@ -27,6 +27,7 @@ import pl.kaitoudev.tabkeeper.proto.expense.v1.GetGroupBalanceRequest;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.GetRepaymentRequest;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.GroupBalance;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.MonetaryAmount;
+import pl.kaitoudev.tabkeeper.proto.expense.v1.RepaymentAllocationInfo;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.RepaymentInfo;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.RepaymentsInGroup;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.RepaymentsInGroupOfUser;
@@ -34,10 +35,13 @@ import pl.kaitoudev.tabkeeper.service.expense.client.exception.GroupServiceReque
 import pl.kaitoudev.tabkeeper.service.expense.client.exception.GroupServiceUnavailableException;
 import pl.kaitoudev.tabkeeper.service.expense.domain.entity.Expense;
 import pl.kaitoudev.tabkeeper.service.expense.domain.entity.ExpenseAllocation;
+import pl.kaitoudev.tabkeeper.service.expense.domain.entity.Repayment;
 import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidExpenseException;
+import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidRequestException;
 import pl.kaitoudev.tabkeeper.service.expense.domain.exception.NonexistentGroupException;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.DirectedDebt;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.GroupBalanceResult;
+import pl.kaitoudev.tabkeeper.service.expense.domain.model.RepaymentCreationResult;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.UserExpenseHistory;
 import pl.kaitoudev.tabkeeper.service.expense.domain.service.ExpenseService;
 import pl.kaitoudev.tabkeeper.shared.grpc.GrpcMappingUtils;
@@ -63,9 +67,9 @@ public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBas
     try {
       expense =
           expenseService.createExpense(
-              UUID.fromString(request.getGroupId()),
-              UUID.fromString(request.getPayingUserId()),
-              new BigDecimal(moneyAmount.getValue()),
+              toUuid(request.getGroupId(), "Group ID"),
+              toUuid(request.getPayingUserId(), "Paying user ID"),
+              toBigDecimal(moneyAmount, "Expense amount"),
               moneyAmount.getCurrency(),
               allocations);
     } catch (NonexistentGroupException ex) {
@@ -122,9 +126,28 @@ public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBas
     }
 
     return ExpenseAllocation.builder()
-        .userId(UUID.fromString(allocation.getUserId()))
-        .amount(new BigDecimal(allocation.getAmount().getValue()))
+        .userId(toUuid(allocation.getUserId(), "Allocation user ID"))
+        .amount(toBigDecimal(allocation.getAmount(), "Allocation amount"))
         .build();
+  }
+
+  /** Parses a UUID while preserving malformed input as a domain validation failure. */
+  private static UUID toUuid(String value, String fieldName) {
+    try {
+      return UUID.fromString(value);
+    } catch (IllegalArgumentException ex) {
+      throw InvalidRequestException.ofMessage("%s must be a valid UUID.".formatted(fieldName), ex);
+    }
+  }
+
+  /** Parses an exact decimal monetary value without leaking a Java parsing exception. */
+  private static BigDecimal toBigDecimal(MonetaryAmount amount, String fieldName) {
+    try {
+      return new BigDecimal(amount.getValue());
+    } catch (NumberFormatException ex) {
+      throw InvalidRequestException.ofMessage(
+          "%s must be an exact decimal value.".formatted(fieldName), ex);
+    }
   }
 
   /** Creates a protobuf monetary amount with the supplied exact decimal representation. */
@@ -134,7 +157,7 @@ public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBas
 
   @Override
   public void getExpense(GetExpenseRequest request, StreamObserver<ExpenseInfo> responseObserver) {
-    UUID expenseId = UUID.fromString(request.getExpenseId());
+    UUID expenseId = toUuid(request.getExpenseId(), "Expense ID");
 
     Optional<Expense> optExpense = expenseService.getExpense(expenseId);
 
@@ -156,7 +179,7 @@ public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBas
   @Override
   public void getAllExpensesInGroup(
       GetAllExpensesInGroupRequest request, StreamObserver<ExpensesInGroup> responseObserver) {
-    UUID groupId = UUID.fromString(request.getGroupId());
+    UUID groupId = toUuid(request.getGroupId(), "Group ID");
 
     List<Expense> expensesInGroup;
     try {
@@ -193,8 +216,8 @@ public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBas
   public void getAllExpensesInGroupOfUser(
       GetAllExpensesInGroupOfUserRequest request,
       StreamObserver<ExpensesInGroupOfUser> responseObserver) {
-    UUID groupId = UUID.fromString(request.getGroupId());
-    UUID userId = UUID.fromString(request.getUserId());
+    UUID groupId = toUuid(request.getGroupId(), "Group ID");
+    UUID userId = toUuid(request.getUserId(), "User ID");
 
     UserExpenseHistory expenseHistory;
     try {
@@ -237,7 +260,7 @@ public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBas
   @Override
   public void getGroupBalance(
       GetGroupBalanceRequest request, StreamObserver<GroupBalance> responseObserver) {
-    UUID groupId = UUID.fromString(request.getGroupId());
+    UUID groupId = toUuid(request.getGroupId(), "Group ID");
 
     GroupBalanceResult balance;
     try {
@@ -284,19 +307,70 @@ public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBas
   @Override
   public void createRepayment(
       CreateRepaymentRequest request, StreamObserver<RepaymentInfo> responseObserver) {
-    UUID groupId = UUID.fromString(request.getGroupId());
-    UUID recipientUserId = UUID.fromString(request.getRecipientUserId());
-    UUID repayingUserId = UUID.fromString(request.getRepayingUserId());
-    BigDecimal amount = new BigDecimal(request.getMoneyAmount().getValue());
-    String currency = request.getMoneyAmount().getCurrency();
+    UUID groupId = toUuid(request.getGroupId(), "Group ID");
+    UUID repayingUserId = toUuid(request.getRepayingUserId(), "Repaying user ID");
+    UUID recipientUserId = toUuid(request.getRecipientUserId(), "Recipient user ID");
+    UUID reportingUserId = toUuid(request.getReportingUserId(), "Reporting user ID");
+    MonetaryAmount moneyAmount = request.getMoneyAmount();
+    BigDecimal amount = toBigDecimal(moneyAmount, "Repayment amount");
 
-    expenseService.createRepayment(
-        groupId,
-        repayingUserId,
-        recipientUserId,
-        amount,
-        currency,
-        UUID.fromString(request.getReportingUserId()));
+    RepaymentCreationResult creationResult;
+    try {
+      creationResult =
+          expenseService.createRepayment(
+              groupId,
+              repayingUserId,
+              recipientUserId,
+              amount,
+              moneyAmount.getCurrency(),
+              reportingUserId);
+    } catch (NonexistentGroupException ex) {
+      responseObserver.onError(
+          Status.NOT_FOUND.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
+      return;
+    } catch (GroupServiceUnavailableException ex) {
+      responseObserver.onError(
+          Status.UNAVAILABLE.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
+      return;
+    } catch (GroupServiceRequestException ex) {
+      responseObserver.onError(
+          Status.INTERNAL
+              .withCause(ex)
+              .withDescription("Group Service could not provide the requested group.")
+              .asRuntimeException());
+      return;
+    }
+
+    responseObserver.onNext(toRepaymentInfo(creationResult));
+    responseObserver.onCompleted();
+  }
+
+  /** Maps a persisted repayment and its FIFO allocations to the protobuf response. */
+  private static RepaymentInfo toRepaymentInfo(RepaymentCreationResult creationResult) {
+    Repayment repayment = creationResult.repayment();
+
+    return RepaymentInfo.newBuilder()
+        .setRepaymentId(repayment.getId().toString())
+        .setGroupId(repayment.getGroup().getGroupId().toString())
+        .setReportingUserId(repayment.getReportingUserId().toString())
+        .setRepayingUserId(repayment.getRepayingUserId().toString())
+        .setRecipientUserId(repayment.getRecipientUserId().toString())
+        .setMoneyAmount(
+            toMonetaryAmount(repayment.getAmount().toPlainString(), repayment.getCurrency()))
+        .setCreatedTs(GrpcMappingUtils.toProtobufTimestamp(repayment.getCreatedTs()))
+        .addAllAllocations(
+            creationResult.allocations().stream()
+                .map(
+                    allocation ->
+                        RepaymentAllocationInfo.newBuilder()
+                            .setOriginExpenseId(allocation.originExpenseId().toString())
+                            .setAppliedAmount(
+                                toMonetaryAmount(
+                                    allocation.appliedAmount().toPlainString(),
+                                    repayment.getCurrency()))
+                            .build())
+                .toList())
+        .build();
   }
 
   @Override

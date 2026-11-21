@@ -21,8 +21,12 @@ import pl.kaitoudev.tabkeeper.service.expense.domain.entity.ExpenseGroup;
 import pl.kaitoudev.tabkeeper.service.expense.domain.entity.Repayment;
 import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidExpenseException;
 import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidRepaymentException;
+import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidRequestException;
+import pl.kaitoudev.tabkeeper.service.expense.domain.exception.MissingExpenseGroupException;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.GroupBalanceResult;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.GroupDetails;
+import pl.kaitoudev.tabkeeper.service.expense.domain.model.RepaymentAllocation;
+import pl.kaitoudev.tabkeeper.service.expense.domain.model.RepaymentCreationResult;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.UserExpenseHistory;
 import pl.kaitoudev.tabkeeper.service.expense.domain.repository.ExpenseGroupRepository;
 import pl.kaitoudev.tabkeeper.service.expense.domain.repository.ExpenseRepository;
@@ -72,8 +76,7 @@ public class ExpenseService {
     ExpenseGroup expenseGroup =
         expenseGroupRepository
             .findByGroupIdForUpdate(groupId)
-            .orElseThrow(
-                () -> new IllegalStateException("Expense group coordination row is absent."));
+            .orElseThrow(() -> MissingExpenseGroupException.ofGroup(groupId));
     long sequence = expenseGroup.allocateNextSequence();
 
     Expense expense =
@@ -138,21 +141,22 @@ public class ExpenseService {
 
   private static void validateUserBelongsToGroup(UUID userId, GroupDetails group) {
     if (!group.isMember(userId)) {
-      throw InvalidExpenseException.ofMessage("The paying user must be a member of the group.");
+      throw InvalidRequestException.ofMessage(
+          "User %s must be a member of group %s.".formatted(userId, group.groupId()));
     }
   }
 
   /** Checks a positive or non-negative exact monetary value against the schema's limits. */
   private static void validateAmount(BigDecimal amount, String fieldName, boolean allowZero) {
     if (amount == null) {
-      throw InvalidExpenseException.ofMessage("%s is required.".formatted(fieldName));
+      throw InvalidRequestException.ofMessage("%s is required.".formatted(fieldName));
     }
     if (amount.scale() != AMOUNT_SCALE || amount.precision() > MAX_AMOUNT_PRECISION) {
-      throw InvalidExpenseException.ofMessage(
+      throw InvalidRequestException.ofMessage(
           "%s must have exactly two decimal places and at most 17 digits.".formatted(fieldName));
     }
     if (allowZero ? amount.signum() < 0 : amount.signum() <= 0) {
-      throw InvalidExpenseException.ofMessage(
+      throw InvalidRequestException.ofMessage(
           "%s must be %s.".formatted(fieldName, allowZero ? "non-negative" : "positive"));
     }
   }
@@ -206,25 +210,25 @@ public class ExpenseService {
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public GroupBalanceResult getGroupBalance(UUID groupId) {
     GroupDetails group = groupGrpcClient.getGroup(groupId);
-    Optional<ExpenseGroup> localGroup =
-        expenseGroupRepository.findByGroupIdWithExpensesAndAllocations(groupId);
-
-    if (localGroup.isEmpty()) {
+    if (!expenseGroupRepository.existsById(groupId)) {
       return new GroupBalanceResult(group.currency(), List.of());
     }
 
-    List<Expense> expenses =
-        localGroup.get().getGroupExpenses().stream()
-            .sorted(Comparator.comparingLong(Expense::getSequence))
-            .toList();
+    List<Expense> expenses = loadOrderedExpenses(groupId);
 
     List<Repayment> repayments = repaymentRepository.findAllByGroupIdOrdered(groupId);
 
     return groupBalanceCalculator.calculate(expenses, repayments, group.currency());
   }
 
+  /** Loads the expense history required by the dynamic balance calculator. */
+  private List<Expense> loadOrderedExpenses(UUID groupId) {
+    return expenseRepository.findAllByGroupIdWithAllocationsOrdered(groupId);
+  }
+
+  /** Validates, allocates, and persists a repayment in one group-locked transaction. */
   @Transactional
-  public void createRepayment(
+  public RepaymentCreationResult createRepayment(
       UUID groupId,
       UUID repayingUserId,
       UUID recipientUserId,
@@ -232,22 +236,30 @@ public class ExpenseService {
       String currency,
       UUID reportingUserId) {
     GroupDetails group = groupGrpcClient.getGroup(groupId);
-    validateRepayment(group, repayingUserId, recipientUserId, amount, currency);
+    validateRepayment(group, repayingUserId, recipientUserId, reportingUserId, amount, currency);
 
     expenseGroupRepository.ensureExists(groupId);
+    ExpenseGroup expenseGroup =
+        expenseGroupRepository
+            .findByGroupIdForUpdate(groupId)
+            .orElseThrow(() -> MissingExpenseGroupException.ofGroup(groupId));
 
-    ExpenseGroup expenseGroup = expenseGroupRepository.findByGroupIdForUpdate(groupId).get();
+    List<Expense> expenses = loadOrderedExpenses(groupId);
+    List<Repayment> repayments = repaymentRepository.findAllByGroupIdOrdered(groupId);
 
     Repayment repayment =
         Repayment.builder()
             .group(expenseGroup)
-            .sequence(expenseGroup.getNextSequence())
+            .sequence(expenseGroup.allocateNextSequence())
             .reportingUserId(reportingUserId)
             .repayingUserId(repayingUserId)
             .recipientUserId(recipientUserId)
             .amount(amount)
             .currency(currency)
             .build();
+
+    List<RepaymentAllocation> allocations =
+        groupBalanceCalculator.calculateRepayment(expenses, repayments, repayment);
 
     Repayment savedRepayment = repaymentRepository.saveAndFlush(repayment);
 
@@ -257,19 +269,36 @@ public class ExpenseService {
         groupId,
         repayingUserId,
         recipientUserId);
+
+    return RepaymentCreationResult.builder()
+        .repayment(savedRepayment)
+        .allocations(allocations)
+        .build();
   }
 
+  /** Validates participant, reporter, monetary, and currency invariants for a repayment. */
   private void validateRepayment(
       GroupDetails group,
       UUID repayingUserId,
       UUID recipientUserId,
+      UUID reportingUserId,
       BigDecimal amount,
       String currency) {
     if (!group.currency().equals(currency)) {
       throw InvalidRepaymentException.ofMessage(
           "Repayment currency must match the group's currency %s.".formatted(group.currency()));
     }
+    if (repayingUserId.equals(recipientUserId)) {
+      throw InvalidRepaymentException.ofMessage(
+          "The repaying user and recipient must be different users.");
+    }
+    if (!reportingUserId.equals(repayingUserId) && !reportingUserId.equals(recipientUserId)) {
+      throw InvalidRepaymentException.ofMessage(
+          "The reporting user must be either the repayer or the recipient.");
+    }
+
     validateUserBelongsToGroup(repayingUserId, group);
     validateUserBelongsToGroup(recipientUserId, group);
+    validateAmount(amount, "Repayment amount", false);
   }
 }
