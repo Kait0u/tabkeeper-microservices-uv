@@ -13,6 +13,7 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.grpc.server.service.GrpcService;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.CreateExpenseRequest;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.CreateRepaymentRequest;
+import pl.kaitoudev.tabkeeper.proto.expense.v1.DirectedBalance;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.ExpenseInfo;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.ExpenseServiceGrpc;
 import pl.kaitoudev.tabkeeper.proto.expense.v1.ExpensesInGroup;
@@ -35,6 +36,8 @@ import pl.kaitoudev.tabkeeper.service.expense.domain.entity.Expense;
 import pl.kaitoudev.tabkeeper.service.expense.domain.entity.ExpenseAllocation;
 import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidExpenseException;
 import pl.kaitoudev.tabkeeper.service.expense.domain.exception.NonexistentGroupException;
+import pl.kaitoudev.tabkeeper.service.expense.domain.model.DirectedDebt;
+import pl.kaitoudev.tabkeeper.service.expense.domain.model.GroupBalanceResult;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.UserExpenseHistory;
 import pl.kaitoudev.tabkeeper.service.expense.domain.service.ExpenseService;
 import pl.kaitoudev.tabkeeper.shared.grpc.GrpcMappingUtils;
@@ -234,13 +237,66 @@ public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBas
   @Override
   public void getGroupBalance(
       GetGroupBalanceRequest request, StreamObserver<GroupBalance> responseObserver) {
-    super.getGroupBalance(request, responseObserver);
+    UUID groupId = UUID.fromString(request.getGroupId());
+
+    GroupBalanceResult balance;
+    try {
+      balance = expenseService.getGroupBalance(groupId);
+    } catch (NonexistentGroupException ex) {
+      responseObserver.onError(
+          Status.NOT_FOUND.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
+      return;
+    } catch (GroupServiceUnavailableException ex) {
+      responseObserver.onError(
+          Status.UNAVAILABLE.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
+      return;
+    } catch (GroupServiceRequestException ex) {
+      responseObserver.onError(
+          Status.INTERNAL
+              .withCause(ex)
+              .withDescription("Group Service could not provide the requested group.")
+              .asRuntimeException());
+      return;
+    }
+
+    GroupBalance response =
+        GroupBalance.newBuilder()
+            .setGroupId(groupId.toString())
+            .addAllBalances(
+                balance.balances().stream()
+                    .map(debt -> toDirectedBalance(debt, balance.currency()))
+                    .toList())
+            .build();
+
+    responseObserver.onNext(response);
+    responseObserver.onCompleted();
+  }
+
+  /** Maps a directed domain debt to its protobuf representation. */
+  private static DirectedBalance toDirectedBalance(DirectedDebt debt, String currency) {
+    return DirectedBalance.newBuilder()
+        .setDebtorUserId(debt.participants().debtorId().toString())
+        .setCreditorUserId(debt.participants().creditorId().toString())
+        .setRemainingAmount(toMonetaryAmount(debt.remainingAmount().toPlainString(), currency))
+        .build();
   }
 
   @Override
   public void createRepayment(
       CreateRepaymentRequest request, StreamObserver<RepaymentInfo> responseObserver) {
-    super.createRepayment(request, responseObserver);
+    UUID groupId = UUID.fromString(request.getGroupId());
+    UUID recipientUserId = UUID.fromString(request.getRecipientUserId());
+    UUID repayingUserId = UUID.fromString(request.getRepayingUserId());
+    BigDecimal amount = new BigDecimal(request.getMoneyAmount().getValue());
+    String currency = request.getMoneyAmount().getCurrency();
+
+    expenseService.createRepayment(
+        groupId,
+        repayingUserId,
+        recipientUserId,
+        amount,
+        currency,
+        UUID.fromString(request.getReportingUserId()));
   }
 
   @Override

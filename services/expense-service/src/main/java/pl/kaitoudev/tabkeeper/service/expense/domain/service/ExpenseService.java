@@ -1,6 +1,5 @@
 package pl.kaitoudev.tabkeeper.service.expense.domain.service;
 
-import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,15 +12,22 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 import pl.kaitoudev.tabkeeper.service.expense.client.GroupGrpcClient;
 import pl.kaitoudev.tabkeeper.service.expense.domain.entity.Expense;
 import pl.kaitoudev.tabkeeper.service.expense.domain.entity.ExpenseAllocation;
 import pl.kaitoudev.tabkeeper.service.expense.domain.entity.ExpenseGroup;
+import pl.kaitoudev.tabkeeper.service.expense.domain.entity.Repayment;
 import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidExpenseException;
+import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidRepaymentException;
+import pl.kaitoudev.tabkeeper.service.expense.domain.model.GroupBalanceResult;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.GroupDetails;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.UserExpenseHistory;
 import pl.kaitoudev.tabkeeper.service.expense.domain.repository.ExpenseGroupRepository;
 import pl.kaitoudev.tabkeeper.service.expense.domain.repository.ExpenseRepository;
+import pl.kaitoudev.tabkeeper.service.expense.domain.repository.RepaymentRepository;
+import pl.kaitoudev.tabkeeper.service.expense.domain.service.balance.GroupBalanceCalculator;
 
 /** Creates expenses and validates their financial and group invariants. */
 @Service
@@ -34,7 +40,10 @@ public class ExpenseService {
 
   private final ExpenseRepository expenseRepository;
   private final ExpenseGroupRepository expenseGroupRepository;
+  private final RepaymentRepository repaymentRepository;
   private final GroupGrpcClient groupGrpcClient;
+
+  private final GroupBalanceCalculator groupBalanceCalculator;
 
   /**
    * Validates and persists an expense, its participant shares, and its group-local sequence.
@@ -110,10 +119,7 @@ public class ExpenseService {
     BigDecimal allocatedTotal = BigDecimal.ZERO;
     for (ExpenseAllocation allocation : allocations) {
       UUID participantId = allocation.getUserId();
-      if (!group.memberIds().contains(participantId)) {
-        throw InvalidExpenseException.ofMessage(
-            "User %s is not a member of the group.".formatted(participantId));
-      }
+      validateUserBelongsToGroup(participantId, group);
       if (!participantIds.add(participantId)) {
         throw InvalidExpenseException.ofMessage(
             "User %s has more than one allocation.".formatted(participantId));
@@ -194,5 +200,76 @@ public class ExpenseService {
         allocatedExpenses.size());
 
     return new UserExpenseHistory(paidExpenses, allocatedExpenses);
+  }
+
+  /** Replays a group's complete financial history to obtain its current directed balances. */
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public GroupBalanceResult getGroupBalance(UUID groupId) {
+    GroupDetails group = groupGrpcClient.getGroup(groupId);
+    Optional<ExpenseGroup> localGroup =
+        expenseGroupRepository.findByGroupIdWithExpensesAndAllocations(groupId);
+
+    if (localGroup.isEmpty()) {
+      return new GroupBalanceResult(group.currency(), List.of());
+    }
+
+    List<Expense> expenses =
+        localGroup.get().getGroupExpenses().stream()
+            .sorted(Comparator.comparingLong(Expense::getSequence))
+            .toList();
+
+    List<Repayment> repayments = repaymentRepository.findAllByGroupIdOrdered(groupId);
+
+    return groupBalanceCalculator.calculate(expenses, repayments, group.currency());
+  }
+
+  @Transactional
+  public void createRepayment(
+      UUID groupId,
+      UUID repayingUserId,
+      UUID recipientUserId,
+      BigDecimal amount,
+      String currency,
+      UUID reportingUserId) {
+    GroupDetails group = groupGrpcClient.getGroup(groupId);
+    validateRepayment(group, repayingUserId, recipientUserId, amount, currency);
+
+    expenseGroupRepository.ensureExists(groupId);
+
+    ExpenseGroup expenseGroup = expenseGroupRepository.findByGroupIdForUpdate(groupId).get();
+
+    Repayment repayment =
+        Repayment.builder()
+            .group(expenseGroup)
+            .sequence(expenseGroup.getNextSequence())
+            .reportingUserId(reportingUserId)
+            .repayingUserId(repayingUserId)
+            .recipientUserId(recipientUserId)
+            .amount(amount)
+            .currency(currency)
+            .build();
+
+    Repayment savedRepayment = repaymentRepository.saveAndFlush(repayment);
+
+    log.info(
+        "RepaymentCreated: ID={}, GroupID={}, RepayerID={}, RecipientID={}",
+        savedRepayment.getId(),
+        groupId,
+        repayingUserId,
+        recipientUserId);
+  }
+
+  private void validateRepayment(
+      GroupDetails group,
+      UUID repayingUserId,
+      UUID recipientUserId,
+      BigDecimal amount,
+      String currency) {
+    if (!group.currency().equals(currency)) {
+      throw InvalidRepaymentException.ofMessage(
+          "Repayment currency must match the group's currency %s.".formatted(group.currency()));
+    }
+    validateUserBelongsToGroup(repayingUserId, group);
+    validateUserBelongsToGroup(recipientUserId, group);
   }
 }
