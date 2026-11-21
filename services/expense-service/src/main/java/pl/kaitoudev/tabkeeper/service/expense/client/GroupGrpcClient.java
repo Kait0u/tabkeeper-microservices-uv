@@ -42,12 +42,16 @@ public class GroupGrpcClient {
       throw translateFailure(groupId, ex);
     }
 
-    Set<UUID> memberIds =
-        response.getMembersList().stream()
-            .map(member -> UUID.fromString(member.getUserId()))
-            .collect(Collectors.toUnmodifiableSet());
-    return new GroupDetails(
-        UUID.fromString(response.getGroupId()), response.getCurrencyCode(), memberIds);
+    try {
+      Set<UUID> memberIds =
+          response.getMembersList().stream()
+              .map(member -> UUID.fromString(member.getUserId()))
+              .collect(Collectors.toUnmodifiableSet());
+      return new GroupDetails(
+          UUID.fromString(response.getGroupId()), response.getCurrencyCode(), memberIds);
+    } catch (IllegalArgumentException ex) {
+      throw GroupServiceRequestException.ofGroup(groupId, ex);
+    }
   }
 
   /** Converts a Group Service transport failure into an expense-service client exception. */

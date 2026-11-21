@@ -4,16 +4,16 @@ import io.grpc.Status;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.grpc.server.advice.GrpcAdvice;
 import org.springframework.grpc.server.advice.GrpcExceptionHandler;
-import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidExpenseException;
+import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidRequestException;
 
 @Slf4j
 @GrpcAdvice
 public class GlobalGrpcExceptionHandler {
 
-  /** Reports malformed identifiers and monetary values as invalid client input. */
-  @GrpcExceptionHandler({InvalidExpenseException.class, IllegalArgumentException.class})
-  public Status handleInvalidRequest(RuntimeException ex) {
-    log.warn("Invalid expense request: {}", ex.getMessage());
+  /** Reports malformed request data and domain validation failures as invalid client input. */
+  @GrpcExceptionHandler(InvalidRequestException.class)
+  public Status handleInvalidRequest(InvalidRequestException ex) {
+    log.warn("Invalid request: {}", ex.getMessage());
 
     return Status.INVALID_ARGUMENT.withDescription(ex.getMessage());
   }

@@ -1,7 +1,7 @@
 package pl.kaitoudev.tabkeeper.service.expense.domain.exception;
 
 /** Indicates that an expense violates a financial or group-membership invariant. */
-public class InvalidExpenseException extends RuntimeException {
+public class InvalidExpenseException extends InvalidRequestException {
 
   /** Creates an exception with the supplied validation message. */
   public InvalidExpenseException(String message) {
