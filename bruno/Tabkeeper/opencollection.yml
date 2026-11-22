@@ -9,6 +9,8 @@ config:
         path: ../../contracts/user-contracts/src/main/proto/tabkeeper/user/v1/user_service.proto
       - type: file
         path: ../../contracts/group-contracts/src/main/proto/tabkeeper/group/v1/group_service.proto
+      - type: file
+        path: ../../contracts/expense-contracts/src/main/proto/tabkeeper/expense/v1/expense_service.proto
   proxy:
     inherit: true
     config:
