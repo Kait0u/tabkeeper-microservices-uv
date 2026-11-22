@@ -20,6 +20,7 @@ import pl.kaitoudev.tabkeeper.service.expense.domain.model.DebtKey;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.DirectedDebt;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.GroupBalanceResult;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.RepaymentAllocation;
+import pl.kaitoudev.tabkeeper.service.expense.domain.model.RepaymentDetails;
 
 /** Replays a group's financial history to calculate its current directed balances. */
 @Component
@@ -45,20 +46,43 @@ public class GroupBalanceCalculator {
     return applyRepayment(candidate, debts);
   }
 
-  /** Rejects invalid stored history as an internal consistency failure. */
-  private void replayExistingHistory(
+  /** Replays history and reconstructs the FIFO allocations of every persisted repayment. */
+  public List<RepaymentDetails> calculateRepaymentHistory(
+      List<Expense> expenses, List<Repayment> repayments) {
+    Map<DebtKey, List<DebtFragment>> debts = new HashMap<>();
+    Map<UUID, List<RepaymentAllocation>> allocations =
+        replayExistingHistory(expenses, repayments, debts);
+
+    return repayments.stream()
+        .sorted(Comparator.comparingLong(Repayment::getSequence))
+        .map(
+            repayment ->
+                RepaymentDetails.builder()
+                    .repayment(repayment)
+                    .allocations(allocations.getOrDefault(repayment.getId(), List.of()))
+                    .build())
+        .toList();
+  }
+
+  /** Replays history and returns allocations keyed by persisted repayment ID. */
+  private Map<UUID, List<RepaymentAllocation>> replayExistingHistory(
       List<Expense> expenses, List<Repayment> repayments, Map<DebtKey, List<DebtFragment>> debts) {
+    Map<UUID, List<RepaymentAllocation>> allocations = new HashMap<>();
     try {
-      replayInSequenceOrder(expenses, repayments, debts);
+      replayInSequenceOrder(expenses, repayments, debts, allocations);
     } catch (InvalidRepaymentException ex) {
       throw InvalidFinancialHistoryException.ofMessage(
           "Stored repayment history contains an overpayment.", ex);
     }
+    return allocations;
   }
 
   /** Applies each transaction exactly once, following the group-local shared sequence. */
   private void replayInSequenceOrder(
-      List<Expense> expenses, List<Repayment> repayments, Map<DebtKey, List<DebtFragment>> debts) {
+      List<Expense> expenses,
+      List<Repayment> repayments,
+      Map<DebtKey, List<DebtFragment>> debts,
+      Map<UUID, List<RepaymentAllocation>> allocations) {
     List<Expense> orderedExpenses =
         expenses.stream().sorted(Comparator.comparingLong(Expense::getSequence)).toList();
     List<Repayment> orderedRepayments =
@@ -69,7 +93,7 @@ public class GroupBalanceCalculator {
     // Merge both histories so each repayment is applied at its historical position.
     while (expenseIndex < orderedExpenses.size() || repaymentIndex < orderedRepayments.size()) {
       if (expenseIndex >= orderedExpenses.size()) {
-        applyRepayment(orderedRepayments.get(repaymentIndex), debts);
+        recordRepayment(orderedRepayments.get(repaymentIndex), debts, allocations);
         ++repaymentIndex;
         continue;
       }
@@ -90,10 +114,18 @@ public class GroupBalanceCalculator {
         applyExpense(nextExpense, debts);
         ++expenseIndex;
       } else {
-        applyRepayment(nextRepayment, debts);
+        recordRepayment(nextRepayment, debts, allocations);
         ++repaymentIndex;
       }
     }
+  }
+
+  /** Applies a persisted repayment and retains its allocations for history responses. */
+  private void recordRepayment(
+      Repayment repayment,
+      Map<DebtKey, List<DebtFragment>> debts,
+      Map<UUID, List<RepaymentAllocation>> allocations) {
+    allocations.put(repayment.getId(), applyRepayment(repayment, debts));
   }
 
   /** Applies participant shares, offsetting reverse obligations before creating new debt. */
