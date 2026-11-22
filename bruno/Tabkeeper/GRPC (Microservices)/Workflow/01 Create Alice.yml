@@ -1,0 +1,38 @@
+info:
+  name: 01 Create Alice
+  type: grpc
+  seq: 1
+
+grpc:
+  url: "{{urlUserService}}"
+  method: /tabkeeper.users.v1.UserService/CreateUser
+  methodType: unary
+  protoFilePath: ../../contracts/user-contracts/src/main/proto/tabkeeper/user/v1/user_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "display_name": "Alice Workflow",
+          "email": "alice-{{$guid}}@example.com",
+          "password": "WorkflowPassword123!"
+        }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: grpc:before-call-start
+      code: |
+        bru.deleteAllVars();
+    - type: grpc:after-message-receive
+      code: |
+        const data = bru.grpc.response.message.data;
+        const userId = data.userId ?? data.user_id;
+        test("Alice has a user ID", function () {
+          expect(userId).to.be.a("string").with.length(36);
+        });
+        bru.setVar("aliceUserId", userId);
+    - type: grpc:after-call-end
+      code: |
+        test("Create Alice succeeds", function () {
+          expect(bru.grpc.response.statusCode).to.equal(0);
+        });

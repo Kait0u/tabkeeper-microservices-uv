@@ -1,0 +1,33 @@
+info:
+  name: 06 Check Bob Membership
+  type: grpc
+  seq: 6
+
+grpc:
+  url: "{{urlGroupService}}"
+  method: /tabkeeper.group.v1.GroupService/CheckMembership
+  methodType: unary
+  protoFilePath: ../../contracts/group-contracts/src/main/proto/tabkeeper/group/v1/group_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "group_id": "{{groupId}}",
+          "user_id": "{{bobUserId}}"
+        }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: grpc:after-message-receive
+      code: |
+        const data = bru.grpc.response.message.data;
+        const isMember = data.isMember ?? data.is_member;
+        test("Bob is a group member", function () {
+          expect(isMember).to.equal(true);
+        });
+    - type: grpc:after-call-end
+      code: |
+        test("Check Bob Membership succeeds", function () {
+          expect(bru.grpc.response.statusCode).to.equal(0);
+        });

@@ -1,0 +1,37 @@
+info:
+  name: 03 Create Group
+  type: grpc
+  seq: 3
+
+grpc:
+  url: "{{urlGroupService}}"
+  method: /tabkeeper.group.v1.GroupService/CreateGroup
+  methodType: unary
+  protoFilePath: ../../contracts/group-contracts/src/main/proto/tabkeeper/group/v1/group_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "owner_id": "{{aliceUserId}}",
+          "group_name": "Workflow {{$guid}}",
+          "currency_code": "USD"
+        }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: grpc:after-message-receive
+      code: |
+        const data = bru.grpc.response.message.data;
+        const groupId = data.groupId ?? data.group_id;
+        const currency = data.currencyCode ?? data.currency_code;
+        test("Group is created in USD", function () {
+          expect(groupId).to.be.a("string").with.length(36);
+          expect(currency).to.equal("USD");
+        });
+        bru.setVar("groupId", groupId);
+    - type: grpc:after-call-end
+      code: |
+        test("Create Group succeeds", function () {
+          expect(bru.grpc.response.statusCode).to.equal(0);
+        });

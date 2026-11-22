@@ -1,0 +1,35 @@
+info:
+  name: 04 Invite Bob
+  type: grpc
+  seq: 4
+
+grpc:
+  url: "{{urlGroupService}}"
+  method: /tabkeeper.group.v1.GroupService/InviteUserToGroup
+  methodType: unary
+  protoFilePath: ../../contracts/group-contracts/src/main/proto/tabkeeper/group/v1/group_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "group_id": "{{groupId}}",
+          "invited_by_user_id": "{{aliceUserId}}",
+          "invited_user_id": "{{bobUserId}}"
+        }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: grpc:after-message-receive
+      code: |
+        const data = bru.grpc.response.message.data;
+        const invitationId = data.invitationId ?? data.invitation_id;
+        test("Invitation has an ID", function () {
+          expect(invitationId).to.be.a("string").with.length(36);
+        });
+        bru.setVar("invitationId", invitationId);
+    - type: grpc:after-call-end
+      code: |
+        test("Invite Bob succeeds", function () {
+          expect(bru.grpc.response.statusCode).to.equal(0);
+        });

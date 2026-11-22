@@ -1,0 +1,49 @@
+info:
+  name: 07 Create Expense
+  type: grpc
+  seq: 7
+
+grpc:
+  url: "{{urlExpenseService}}"
+  method: /tabkeeper.expense.v1.ExpenseService/CreateExpense
+  methodType: unary
+  protoFilePath: ../../contracts/expense-contracts/src/main/proto/tabkeeper/expense/v1/expense_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "group_id": "{{groupId}}",
+          "paying_user_id": "{{aliceUserId}}",
+          "money_amount": {
+            "value": "100.00",
+            "currency": "USD"
+          },
+          "allocations": [
+            {
+              "user_id": "{{aliceUserId}}",
+              "amount": { "value": "60.00", "currency": "USD" }
+            },
+            {
+              "user_id": "{{bobUserId}}",
+              "amount": { "value": "40.00", "currency": "USD" }
+            }
+          ]
+        }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: grpc:after-message-receive
+      code: |
+        const data = bru.grpc.response.message.data;
+        const expenseId = data.expenseId ?? data.expense_id;
+        test("Expense is created with two allocations", function () {
+          expect(expenseId).to.be.a("string").with.length(36);
+          expect(data.allocations).to.have.length(2);
+        });
+        bru.setVar("expenseId", expenseId);
+    - type: grpc:after-call-end
+      code: |
+        test("Create Expense succeeds", function () {
+          expect(bru.grpc.response.statusCode).to.equal(0);
+        });

@@ -1,0 +1,33 @@
+info:
+  name: 09 Get Group Expenses
+  type: grpc
+  seq: 9
+
+grpc:
+  url: "{{urlExpenseService}}"
+  method: /tabkeeper.expense.v1.ExpenseService/GetAllExpensesInGroup
+  methodType: unary
+  protoFilePath: ../../contracts/expense-contracts/src/main/proto/tabkeeper/expense/v1/expense_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "group_id": "{{groupId}}"
+        }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: grpc:after-message-receive
+      code: |
+        const data = bru.grpc.response.message.data;
+        test("Group history contains the new expense", function () {
+          expect(data.expenses).to.have.length(1);
+          const expenseId = data.expenses[0].expenseId ?? data.expenses[0].expense_id;
+          expect(expenseId).to.equal(bru.getVar("expenseId"));
+        });
+    - type: grpc:after-call-end
+      code: |
+        test("Get Group Expenses succeeds", function () {
+          expect(bru.grpc.response.statusCode).to.equal(0);
+        });

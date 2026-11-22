@@ -1,0 +1,35 @@
+info:
+  name: 02 Create Bob
+  type: grpc
+  seq: 2
+
+grpc:
+  url: "{{urlUserService}}"
+  method: /tabkeeper.users.v1.UserService/CreateUser
+  methodType: unary
+  protoFilePath: ../../contracts/user-contracts/src/main/proto/tabkeeper/user/v1/user_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "display_name": "Bob Workflow",
+          "email": "bob-{{$guid}}@example.com",
+          "password": "WorkflowPassword123!"
+        }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: grpc:after-message-receive
+      code: |
+        const data = bru.grpc.response.message.data;
+        const userId = data.userId ?? data.user_id;
+        test("Bob has a user ID", function () {
+          expect(userId).to.be.a("string").with.length(36);
+        });
+        bru.setVar("bobUserId", userId);
+    - type: grpc:after-call-end
+      code: |
+        test("Create Bob succeeds", function () {
+          expect(bru.grpc.response.statusCode).to.equal(0);
+        });

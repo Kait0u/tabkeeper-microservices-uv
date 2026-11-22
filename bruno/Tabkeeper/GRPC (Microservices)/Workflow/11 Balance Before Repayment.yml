@@ -1,0 +1,39 @@
+info:
+  name: 11 Balance Before Repayment
+  type: grpc
+  seq: 11
+
+grpc:
+  url: "{{urlExpenseService}}"
+  method: /tabkeeper.expense.v1.ExpenseService/GetGroupBalance
+  methodType: unary
+  protoFilePath: ../../contracts/expense-contracts/src/main/proto/tabkeeper/expense/v1/expense_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "group_id": "{{groupId}}"
+        }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: grpc:after-message-receive
+      code: |
+        const data = bru.grpc.response.message.data;
+        test("Bob owes Alice 40 USD", function () {
+          expect(data.balances).to.have.length(1);
+          const balance = data.balances[0];
+          const debtor = balance.debtorUserId ?? balance.debtor_user_id;
+          const creditor = balance.creditorUserId ?? balance.creditor_user_id;
+          const amount = balance.remainingAmount ?? balance.remaining_amount;
+          expect(debtor).to.equal(bru.getVar("bobUserId"));
+          expect(creditor).to.equal(bru.getVar("aliceUserId"));
+          expect(amount.value).to.equal("40.00");
+          expect(amount.currency).to.equal("USD");
+        });
+    - type: grpc:after-call-end
+      code: |
+        test("Balance Before Repayment succeeds", function () {
+          expect(bru.grpc.response.statusCode).to.equal(0);
+        });

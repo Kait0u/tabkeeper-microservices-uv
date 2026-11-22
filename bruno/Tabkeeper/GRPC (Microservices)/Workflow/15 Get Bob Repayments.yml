@@ -1,0 +1,35 @@
+info:
+  name: 15 Get Bob Repayments
+  type: grpc
+  seq: 15
+
+grpc:
+  url: "{{urlExpenseService}}"
+  method: /tabkeeper.expense.v1.ExpenseService/GetAllRepaymentsInGroupOfUser
+  methodType: unary
+  protoFilePath: ../../contracts/expense-contracts/src/main/proto/tabkeeper/expense/v1/expense_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "group_id": "{{groupId}}",
+          "user_id": "{{bobUserId}}"
+        }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: grpc:after-message-receive
+      code: |
+        const data = bru.grpc.response.message.data;
+        test("Bob's history contains his repayment", function () {
+          expect(data.repayments).to.have.length(1);
+          const repayment = data.repayments[0];
+          const repayer = repayment.repayingUserId ?? repayment.repaying_user_id;
+          expect(repayer).to.equal(bru.getVar("bobUserId"));
+        });
+    - type: grpc:after-call-end
+      code: |
+        test("Get Bob Repayments succeeds", function () {
+          expect(bru.grpc.response.statusCode).to.equal(0);
+        });

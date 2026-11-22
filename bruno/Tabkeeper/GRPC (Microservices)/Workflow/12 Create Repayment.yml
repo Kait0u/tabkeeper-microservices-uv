@@ -1,0 +1,43 @@
+info:
+  name: 12 Create Repayment
+  type: grpc
+  seq: 12
+
+grpc:
+  url: "{{urlExpenseService}}"
+  method: /tabkeeper.expense.v1.ExpenseService/CreateRepayment
+  methodType: unary
+  protoFilePath: ../../contracts/expense-contracts/src/main/proto/tabkeeper/expense/v1/expense_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "group_id": "{{groupId}}",
+          "reporting_user_id": "{{bobUserId}}",
+          "repaying_user_id": "{{bobUserId}}",
+          "recipient_user_id": "{{aliceUserId}}",
+          "money_amount": { "value": "10.00", "currency": "USD" }
+        }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: grpc:after-message-receive
+      code: |
+        const data = bru.grpc.response.message.data;
+        const repaymentId = data.repaymentId ?? data.repayment_id;
+        test("Repayment is allocated to the source expense", function () {
+          expect(repaymentId).to.be.a("string").with.length(36);
+          expect(data.allocations).to.have.length(1);
+          const allocation = data.allocations[0];
+          const originId = allocation.originExpenseId ?? allocation.origin_expense_id;
+          const amount = allocation.appliedAmount ?? allocation.applied_amount;
+          expect(originId).to.equal(bru.getVar("expenseId"));
+          expect(amount.value).to.equal("10.00");
+        });
+        bru.setVar("repaymentId", repaymentId);
+    - type: grpc:after-call-end
+      code: |
+        test("Create Repayment succeeds", function () {
+          expect(bru.grpc.response.statusCode).to.equal(0);
+        });

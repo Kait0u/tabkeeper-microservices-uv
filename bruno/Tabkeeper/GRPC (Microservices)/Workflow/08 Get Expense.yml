@@ -1,0 +1,34 @@
+info:
+  name: 08 Get Expense
+  type: grpc
+  seq: 8
+
+grpc:
+  url: "{{urlExpenseService}}"
+  method: /tabkeeper.expense.v1.ExpenseService/GetExpense
+  methodType: unary
+  protoFilePath: ../../contracts/expense-contracts/src/main/proto/tabkeeper/expense/v1/expense_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "expense_id": "{{expenseId}}"
+        }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: grpc:after-message-receive
+      code: |
+        const data = bru.grpc.response.message.data;
+        const expenseId = data.expenseId ?? data.expense_id;
+        const groupId = data.groupId ?? data.group_id;
+        test("Stored expense matches the workflow", function () {
+          expect(expenseId).to.equal(bru.getVar("expenseId"));
+          expect(groupId).to.equal(bru.getVar("groupId"));
+        });
+    - type: grpc:after-call-end
+      code: |
+        test("Get Expense succeeds", function () {
+          expect(bru.grpc.response.statusCode).to.equal(0);
+        });

@@ -1,0 +1,32 @@
+info:
+  name: 05 Accept Invitation
+  type: grpc
+  seq: 5
+
+grpc:
+  url: "{{urlGroupService}}"
+  method: /tabkeeper.group.v1.GroupService/AcceptGroupInvitation
+  methodType: unary
+  protoFilePath: ../../contracts/group-contracts/src/main/proto/tabkeeper/group/v1/group_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "invitation_id": "{{invitationId}}"
+        }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: grpc:after-message-receive
+      code: |
+        const data = bru.grpc.response.message.data;
+        const groupId = data.groupId ?? data.group_id;
+        test("Invitation belongs to the workflow group", function () {
+          expect(groupId).to.equal(bru.getVar("groupId"));
+        });
+    - type: grpc:after-call-end
+      code: |
+        test("Accept Invitation succeeds", function () {
+          expect(bru.grpc.response.statusCode).to.equal(0);
+        });

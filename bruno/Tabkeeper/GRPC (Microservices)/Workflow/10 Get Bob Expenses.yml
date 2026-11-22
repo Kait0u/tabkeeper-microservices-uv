@@ -1,0 +1,37 @@
+info:
+  name: 10 Get Bob Expenses
+  type: grpc
+  seq: 10
+
+grpc:
+  url: "{{urlExpenseService}}"
+  method: /tabkeeper.expense.v1.ExpenseService/GetAllExpensesInGroupOfUser
+  methodType: unary
+  protoFilePath: ../../contracts/expense-contracts/src/main/proto/tabkeeper/expense/v1/expense_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "group_id": "{{groupId}}",
+          "user_id": "{{bobUserId}}"
+        }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: grpc:after-message-receive
+      code: |
+        const data = bru.grpc.response.message.data;
+        const paid = data.expensesPaid ?? data.expenses_paid ?? [];
+        const allocated = data.expensesAllocated ?? data.expenses_allocated ?? [];
+        test("Bob has one allocated expense and no paid expenses", function () {
+          expect(paid).to.have.length(0);
+          expect(allocated).to.have.length(1);
+          const expenseId = allocated[0].expenseId ?? allocated[0].expense_id;
+          expect(expenseId).to.equal(bru.getVar("expenseId"));
+        });
+    - type: grpc:after-call-end
+      code: |
+        test("Get Bob Expenses succeeds", function () {
+          expect(bru.grpc.response.statusCode).to.equal(0);
+        });
