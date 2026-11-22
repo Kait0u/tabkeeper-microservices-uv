@@ -1,0 +1,17 @@
+info:
+  name: GetAllRepaymentsInGroup
+  type: grpc
+  seq: 8
+
+grpc:
+  url: "{{urlExpenseService}}"
+  method: /tabkeeper.expense.v1.ExpenseService/GetAllRepaymentsInGroup
+  methodType: unary
+  protoFilePath: ../../contracts/expense-contracts/src/main/proto/tabkeeper/expense/v1/expense_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "group_id": "862420bb-4381-48e0-a029-ae16a86c5192"
+        }
+  auth: inherit
