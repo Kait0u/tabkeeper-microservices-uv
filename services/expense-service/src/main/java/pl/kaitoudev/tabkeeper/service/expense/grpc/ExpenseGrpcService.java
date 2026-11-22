@@ -41,7 +41,7 @@ import pl.kaitoudev.tabkeeper.service.expense.domain.exception.InvalidRequestExc
 import pl.kaitoudev.tabkeeper.service.expense.domain.exception.NonexistentGroupException;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.DirectedDebt;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.GroupBalanceResult;
-import pl.kaitoudev.tabkeeper.service.expense.domain.model.RepaymentCreationResult;
+import pl.kaitoudev.tabkeeper.service.expense.domain.model.RepaymentDetails;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.UserExpenseHistory;
 import pl.kaitoudev.tabkeeper.service.expense.domain.service.ExpenseService;
 import pl.kaitoudev.tabkeeper.shared.grpc.GrpcMappingUtils;
@@ -314,9 +314,9 @@ public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBas
     MonetaryAmount moneyAmount = request.getMoneyAmount();
     BigDecimal amount = toBigDecimal(moneyAmount, "Repayment amount");
 
-    RepaymentCreationResult creationResult;
+    RepaymentDetails repaymentDetails;
     try {
-      creationResult =
+      repaymentDetails =
           expenseService.createRepayment(
               groupId,
               repayingUserId,
@@ -341,13 +341,13 @@ public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBas
       return;
     }
 
-    responseObserver.onNext(toRepaymentInfo(creationResult));
+    responseObserver.onNext(toRepaymentInfo(repaymentDetails));
     responseObserver.onCompleted();
   }
 
   /** Maps a persisted repayment and its FIFO allocations to the protobuf response. */
-  private static RepaymentInfo toRepaymentInfo(RepaymentCreationResult creationResult) {
-    Repayment repayment = creationResult.repayment();
+  private static RepaymentInfo toRepaymentInfo(RepaymentDetails repaymentDetails) {
+    Repayment repayment = repaymentDetails.repayment();
 
     return RepaymentInfo.newBuilder()
         .setRepaymentId(repayment.getId().toString())
@@ -359,7 +359,7 @@ public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBas
             toMonetaryAmount(repayment.getAmount().toPlainString(), repayment.getCurrency()))
         .setCreatedTs(GrpcMappingUtils.toProtobufTimestamp(repayment.getCreatedTs()))
         .addAllAllocations(
-            creationResult.allocations().stream()
+            repaymentDetails.allocations().stream()
                 .map(
                     allocation ->
                         RepaymentAllocationInfo.newBuilder()
@@ -376,19 +376,112 @@ public class ExpenseGrpcService extends ExpenseServiceGrpc.ExpenseServiceImplBas
   @Override
   public void getRepayment(
       GetRepaymentRequest request, StreamObserver<RepaymentInfo> responseObserver) {
-    super.getRepayment(request, responseObserver);
+    UUID groupId = toUuid(request.getGroupId(), "Group ID");
+    UUID repaymentId = toUuid(request.getRepaymentId(), "Repayment ID");
+
+    Optional<RepaymentDetails> repaymentDetails;
+    try {
+      repaymentDetails = expenseService.getRepayment(groupId, repaymentId);
+    } catch (NonexistentGroupException ex) {
+      responseObserver.onError(
+          Status.NOT_FOUND.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
+      return;
+    } catch (GroupServiceUnavailableException ex) {
+      responseObserver.onError(
+          Status.UNAVAILABLE.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
+      return;
+    } catch (GroupServiceRequestException ex) {
+      responseObserver.onError(
+          Status.INTERNAL
+              .withCause(ex)
+              .withDescription("Group Service could not provide the requested group.")
+              .asRuntimeException());
+      return;
+    }
+
+    if (repaymentDetails.isEmpty()) {
+      responseObserver.onError(
+          Status.NOT_FOUND
+              .withDescription(
+                  "Repayment ID=%s not found in group ID=%s.".formatted(repaymentId, groupId))
+              .asRuntimeException());
+      return;
+    }
+
+    responseObserver.onNext(toRepaymentInfo(repaymentDetails.get()));
+    responseObserver.onCompleted();
   }
 
   @Override
   public void getAllRepaymentsInGroup(
       GetAllRepaymentsInGroupRequest request, StreamObserver<RepaymentsInGroup> responseObserver) {
-    super.getAllRepaymentsInGroup(request, responseObserver);
+    UUID groupId = toUuid(request.getGroupId(), "Group ID");
+
+    List<RepaymentDetails> repayments;
+    try {
+      repayments = expenseService.getAllRepaymentsInGroup(groupId);
+    } catch (NonexistentGroupException ex) {
+      responseObserver.onError(
+          Status.NOT_FOUND.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
+      return;
+    } catch (GroupServiceUnavailableException ex) {
+      responseObserver.onError(
+          Status.UNAVAILABLE.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
+      return;
+    } catch (GroupServiceRequestException ex) {
+      responseObserver.onError(
+          Status.INTERNAL
+              .withCause(ex)
+              .withDescription("Group Service could not provide the requested group.")
+              .asRuntimeException());
+      return;
+    }
+
+    RepaymentsInGroup response =
+        RepaymentsInGroup.newBuilder()
+            .setGroupId(groupId.toString())
+            .addAllRepayments(repayments.stream().map(ExpenseGrpcService::toRepaymentInfo).toList())
+            .build();
+
+    responseObserver.onNext(response);
+    responseObserver.onCompleted();
   }
 
   @Override
   public void getAllRepaymentsInGroupOfUser(
       GetAllRepaymentsInGroupOfUserRequest request,
       StreamObserver<RepaymentsInGroupOfUser> responseObserver) {
-    super.getAllRepaymentsInGroupOfUser(request, responseObserver);
+    UUID groupId = toUuid(request.getGroupId(), "Group ID");
+    UUID userId = toUuid(request.getUserId(), "User ID");
+
+    List<RepaymentDetails> repayments;
+    try {
+      repayments = expenseService.getAllRepaymentsInGroupOfUser(groupId, userId);
+    } catch (NonexistentGroupException ex) {
+      responseObserver.onError(
+          Status.NOT_FOUND.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
+      return;
+    } catch (GroupServiceUnavailableException ex) {
+      responseObserver.onError(
+          Status.UNAVAILABLE.withCause(ex).withDescription(ex.getMessage()).asRuntimeException());
+      return;
+    } catch (GroupServiceRequestException ex) {
+      responseObserver.onError(
+          Status.INTERNAL
+              .withCause(ex)
+              .withDescription("Group Service could not provide the requested group.")
+              .asRuntimeException());
+      return;
+    }
+
+    RepaymentsInGroupOfUser response =
+        RepaymentsInGroupOfUser.newBuilder()
+            .setGroupId(groupId.toString())
+            .setUserId(userId.toString())
+            .addAllRepayments(repayments.stream().map(ExpenseGrpcService::toRepaymentInfo).toList())
+            .build();
+
+    responseObserver.onNext(response);
+    responseObserver.onCompleted();
   }
 }

@@ -26,7 +26,7 @@ import pl.kaitoudev.tabkeeper.service.expense.domain.exception.MissingExpenseGro
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.GroupBalanceResult;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.GroupDetails;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.RepaymentAllocation;
-import pl.kaitoudev.tabkeeper.service.expense.domain.model.RepaymentCreationResult;
+import pl.kaitoudev.tabkeeper.service.expense.domain.model.RepaymentDetails;
 import pl.kaitoudev.tabkeeper.service.expense.domain.model.UserExpenseHistory;
 import pl.kaitoudev.tabkeeper.service.expense.domain.repository.ExpenseGroupRepository;
 import pl.kaitoudev.tabkeeper.service.expense.domain.repository.ExpenseRepository;
@@ -228,7 +228,7 @@ public class ExpenseService {
 
   /** Validates, allocates, and persists a repayment in one group-locked transaction. */
   @Transactional
-  public RepaymentCreationResult createRepayment(
+  public RepaymentDetails createRepayment(
       UUID groupId,
       UUID repayingUserId,
       UUID recipientUserId,
@@ -270,10 +270,65 @@ public class ExpenseService {
         repayingUserId,
         recipientUserId);
 
-    return RepaymentCreationResult.builder()
-        .repayment(savedRepayment)
-        .allocations(allocations)
-        .build();
+    return RepaymentDetails.builder().repayment(savedRepayment).allocations(allocations).build();
+  }
+
+  /** Retrieves a repayment and its reconstructed allocations within the requested group. */
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public Optional<RepaymentDetails> getRepayment(UUID groupId, UUID repaymentId) {
+    if (!expenseGroupRepository.existsById(groupId)) {
+      groupGrpcClient.getGroup(groupId);
+      return Optional.empty();
+    }
+
+    return loadRepaymentHistory(groupId).stream()
+        .filter(details -> details.repayment().getId().equals(repaymentId))
+        .findFirst();
+  }
+
+  /** Lists all repayments in a group with their dynamically reconstructed allocations. */
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public List<RepaymentDetails> getAllRepaymentsInGroup(UUID groupId) {
+    if (!expenseGroupRepository.existsById(groupId)) {
+      groupGrpcClient.getGroup(groupId);
+      return List.of();
+    }
+
+    List<RepaymentDetails> repayments = loadRepaymentHistory(groupId);
+    log.info("Retrieved {} repayments in group {}.", repayments.size(), groupId);
+
+    return repayments;
+  }
+
+  /** Lists repayments where the user is the repayer or recipient. */
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public List<RepaymentDetails> getAllRepaymentsInGroupOfUser(UUID groupId, UUID userId) {
+    GroupDetails group = groupGrpcClient.getGroup(groupId);
+    validateUserBelongsToGroup(userId, group);
+
+    if (!expenseGroupRepository.existsById(groupId)) {
+      return List.of();
+    }
+
+    List<RepaymentDetails> repayments =
+        loadRepaymentHistory(groupId).stream()
+            .filter(
+                details ->
+                    details.repayment().getRepayingUserId().equals(userId)
+                        || details.repayment().getRecipientUserId().equals(userId))
+            .toList();
+    log.info(
+        "Retrieved {} repayments in group {} for user {}.", repayments.size(), groupId, userId);
+
+    return repayments;
+  }
+
+  /** Loads and replays the group's financial history to reconstruct repayment allocations. */
+  private List<RepaymentDetails> loadRepaymentHistory(UUID groupId) {
+    List<Expense> expenses = loadOrderedExpenses(groupId);
+    List<Repayment> repayments = repaymentRepository.findAllByGroupIdOrdered(groupId);
+
+    return groupBalanceCalculator.calculateRepaymentHistory(expenses, repayments);
   }
 
   /** Validates participant, reporter, monetary, and currency invariants for a repayment. */
