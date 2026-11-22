@@ -1,0 +1,17 @@
+info:
+  name: GetExpense
+  type: grpc
+  seq: 2
+
+grpc:
+  url: "{{urlExpenseService}}"
+  method: /tabkeeper.expense.v1.ExpenseService/GetExpense
+  methodType: unary
+  protoFilePath: ../../contracts/expense-contracts/src/main/proto/tabkeeper/expense/v1/expense_service.proto
+  message:
+    - title: message 1
+      message: |-
+        {
+          "expense_id": "00000000-0000-0000-0000-000000000000"
+        }
+  auth: inherit
