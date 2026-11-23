@@ -1,0 +1,30 @@
+info:
+  name: 16 Balance After Repayment
+  type: http
+  seq: 16
+
+http:
+  method: GET
+  url: http://localhost:8080/api/v1/groups/{{groupId}}/balance
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("Bob owes Alice 30 USD after repayment", function () {
+          expect(res.getStatus()).to.equal(200);
+          expect(res.getBody().balances).to.have.length(1);
+          const balance = res.getBody().balances[0];
+          expect(balance.debtorUserId).to.equal(bru.getVar("bobUserId"));
+          expect(balance.creditorUserId).to.equal(bru.getVar("aliceUserId"));
+          expect(Number(balance.remainingAmount.value)).to.equal(30);
+          expect(balance.remainingAmount.currency).to.equal("USD");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,42 @@
+info:
+  name: 12 Create Repayment
+  type: http
+  seq: 12
+
+http:
+  method: POST
+  url: http://localhost:8080/api/v1/repayments
+  body:
+    type: json
+    data: |-
+      {
+        "groupId": "{{groupId}}",
+        "reportingUserId": "{{bobUserId}}",
+        "repayingUserId": "{{bobUserId}}",
+        "recipientUserId": "{{aliceUserId}}",
+        "moneyAmount": { "value": "10.00", "currency": "USD" }
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setVar("repaymentId", res.getBody().repaymentId);
+    - type: tests
+      code: |-
+        test("Repayment is allocated to the source expense", function () {
+          expect(res.getStatus()).to.equal(201);
+          expect(res.getBody().repaymentId).to.be.a("string").with.length(36);
+          expect(res.getBody().allocations).to.have.length(1);
+          const allocation = res.getBody().allocations[0];
+          expect(allocation.originExpenseId).to.equal(bru.getVar("expenseId"));
+          expect(Number(allocation.appliedAmount.value)).to.equal(10);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,25 @@
+info:
+  name: 05 Accept Invitation
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: http://localhost:8080/api/v1/invitations/{{invitationId}}/accept
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("Invitation is accepted for the workflow group", function () {
+          expect(res.getStatus()).to.equal(200);
+          expect(res.getBody().groupId).to.equal(bru.getVar("groupId"));
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

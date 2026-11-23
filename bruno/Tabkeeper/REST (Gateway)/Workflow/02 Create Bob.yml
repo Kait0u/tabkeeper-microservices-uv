@@ -1,0 +1,36 @@
+info:
+  name: 02 Create Bob
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:8080/api/v1/users
+  body:
+    type: json
+    data: |-
+      {
+        "displayName": "Bob Workflow",
+        "email": "bob-{{$guid}}@example.com",
+        "password": "WorkflowPassword123!"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setVar("bobUserId", res.getBody().userId);
+    - type: tests
+      code: |-
+        test("Bob is created", function () {
+          expect(res.getStatus()).to.equal(201);
+          expect(res.getBody().userId).to.be.a("string").with.length(36);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

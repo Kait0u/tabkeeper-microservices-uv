@@ -1,0 +1,25 @@
+info:
+  name: 06 Check Bob Membership
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: http://localhost:8080/api/v1/groups/{{groupId}}/members/{{bobUserId}}
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("Bob is a group member", function () {
+          expect(res.getStatus()).to.equal(200);
+          expect(res.getBody().isMember).to.equal(true);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

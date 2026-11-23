@@ -1,0 +1,47 @@
+info:
+  name: 07 Create Expense
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: http://localhost:8080/api/v1/expenses
+  body:
+    type: json
+    data: |-
+      {
+        "groupId": "{{groupId}}",
+        "payingUserId": "{{aliceUserId}}",
+        "moneyAmount": { "value": "100.00", "currency": "USD" },
+        "allocations": [
+          {
+            "userId": "{{aliceUserId}}",
+            "amount": { "value": "60.00", "currency": "USD" }
+          },
+          {
+            "userId": "{{bobUserId}}",
+            "amount": { "value": "40.00", "currency": "USD" }
+          }
+        ]
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setVar("expenseId", res.getBody().expenseId);
+    - type: tests
+      code: |-
+        test("Expense is created with two allocations", function () {
+          expect(res.getStatus()).to.equal(201);
+          expect(res.getBody().expenseId).to.be.a("string").with.length(36);
+          expect(res.getBody().allocations).to.have.length(2);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
