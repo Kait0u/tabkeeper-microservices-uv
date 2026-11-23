@@ -1,0 +1,23 @@
+info:
+  name: Get User Repayments In Group
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: http://localhost:8080/api/v1/groups/:groupId/users/:userId/repayments
+  params:
+    - name: groupId
+      value: 862420bb-4381-48e0-a029-ae16a86c5192
+      type: path
+    - name: userId
+      value: 7e0959d7-8c79-42e4-8481-3cc8f294c4b4
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
