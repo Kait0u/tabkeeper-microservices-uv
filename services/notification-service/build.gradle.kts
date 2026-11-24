@@ -6,7 +6,7 @@ dependencies {
     // Events
     implementation(project(":contracts:user-contracts"))
     implementation(project(":contracts:group-contracts"))
-    implementation(project(":shared:events"))
+    implementation(project(":shared:notification-commons"))
     implementation(project(":shared:grpc-utils"))
 
     // RabbitMQ
