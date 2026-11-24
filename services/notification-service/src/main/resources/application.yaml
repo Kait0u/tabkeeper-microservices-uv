@@ -1,3 +1,19 @@
+# --------------------------------------------------------------------------------------------------
+# Notification Service Config
+# --------------------------------------------------------------------------------------------------
+
+tabkeeper:
+  notification-service:
+    email:
+      from-email: "notifications@tabkeeper.local"
+  grpc:
+    discovery-refresh-interval: ${GRPC_DISCOVERY_REFRESH_INTERVAL:PT5S}
+
+# --------------------------------------------------------------------------------------------------
+# Spring Boot config
+# --------------------------------------------------------------------------------------------------
+
+
 spring:
   application:
     name: tabkeeper-notification-service
@@ -26,6 +42,7 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+
 
 logging:
   level:
