@@ -34,4 +34,5 @@ include(
 
     // Shared
     "shared:grpc-utils",
+    "shared:events"
 )
