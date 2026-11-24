@@ -147,8 +147,51 @@ services:
     labels:
       dev.tabkeeper.logs: "true"
     ports: [ "9093:9090" ]
+    networks:
+      - default
+      - mailpit
     environment:
       EUREKA_URL: http://discovery:8761/eureka/
+      SPRING_MAIL_HOST: mailpit
+      SPRING_MAIL_PORT: "1025"
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: tabkeeper
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Required}
+
+
+  mailpit:
+    image: axllent/mailpit
+    container_name: mailpit
+    restart: unless-stopped
+    volumes:
+      - ./data:/data
+    ports:
+      - "127.0.0.1:8025:8025"
+    networks: [ mailpit ]
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+  rabbitmq:
+    image: rabbitmq:latest
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: tabkeeper
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Required}
+    configs:
+      - source: rabbitmq-plugins
+        target: /etc/rabbitmq/enabled_plugins
+    volumes:
+      - tabkeeper_rabbitmq_data:/var/lib/rabbitmq
+      - tabkeeper_rabbitmq_logs:/var/log/rabbitmq
+
 
   # ================================================================================================
   # Observability
@@ -164,8 +207,17 @@ services:
   # To Be Continued...
   # ================================================================================================
 
+configs:
+  rabbitmq-plugins:
+    content: "[rabbitmq_management]."
+
 volumes:
   tabkeeper_user_service_postgres_data: {}
   tabkeeper_group_service_postgres_data: {}
   tabkeeper_expense_service_postgres_data: {}
+  tabkeeper_rabbitmq_data: {}
+  tabkeeper_rabbitmq_logs: {}
 
+networks:
+  default: {}
+  mailpit: {}

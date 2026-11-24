@@ -6,6 +6,22 @@ spring:
     config:
       enabled: false
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:tabkeeper}
+    password: ${RABBITMQ_PASSWORD}
+
+  mail:
+    host: ${MAILPIT_HOST:mailpit}
+    port: ${MAILPIT_PORT:1025}
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
 eureka:
   client:
     service-url:
