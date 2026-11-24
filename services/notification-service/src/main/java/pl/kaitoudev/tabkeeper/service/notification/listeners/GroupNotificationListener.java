@@ -8,6 +8,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 import pl.kaitoudev.tabkeeper.event.group.GroupInvitationAcceptedEvent;
 import pl.kaitoudev.tabkeeper.event.group.GroupInvitationCreatedEvent;
+import pl.kaitoudev.tabkeeper.queues.QueueNames;
 import pl.kaitoudev.tabkeeper.service.notification.client.model.UserContactDetails;
 import pl.kaitoudev.tabkeeper.service.notification.email.NotificationTitles;
 import pl.kaitoudev.tabkeeper.service.notification.email.renderer.GroupTemplateRenderer;
@@ -31,7 +32,7 @@ public class GroupNotificationListener extends AbstractNotificationListener {
   }
 
   /** Sends the invitation to the invited user and a confirmation to the inviter. */
-  @RabbitListener(queues = "groupinvite.created")
+  @RabbitListener(queues = QueueNames.GROUPINVITE_CREATED)
   public void handleGroupInvitationCreated(GroupInvitationCreatedEvent event) {
     log.info("Received GroupInvitationCreated event {}", event.getEventId());
 
@@ -59,7 +60,7 @@ public class GroupNotificationListener extends AbstractNotificationListener {
   }
 
   /** Notifies both the inviter and the new member that an invitation was accepted. */
-  @RabbitListener(queues = "groupinvite.accepted")
+  @RabbitListener(queues = QueueNames.GROUPINVITE_ACCEPTED)
   public void handleGroupInvitationAccepted(GroupInvitationAcceptedEvent event) {
     log.info("Received GroupInvitationAccepted event {}", event.getEventId());
 

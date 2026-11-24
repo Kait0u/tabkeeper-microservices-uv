@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import pl.kaitoudev.tabkeeper.event.expense.ExpenseCreatedEvent;
 import pl.kaitoudev.tabkeeper.event.expense.ExpenseParticipant;
 import pl.kaitoudev.tabkeeper.event.expense.RepaymentCreatedEvent;
+import pl.kaitoudev.tabkeeper.queues.QueueNames;
 import pl.kaitoudev.tabkeeper.service.notification.client.model.UserContactDetails;
 import pl.kaitoudev.tabkeeper.service.notification.email.NotificationTitles;
 import pl.kaitoudev.tabkeeper.service.notification.email.renderer.ExpenseTemplateRenderer;
@@ -34,7 +35,7 @@ public class ExpenseNotificationListener extends AbstractNotificationListener {
   }
 
   /** Sends a receipt to the payer and an allocation notification to each other participant. */
-  @RabbitListener(queues = "expense.created")
+  @RabbitListener(queues = QueueNames.EXPENSE_CREATED)
   public void handleExpenseCreated(ExpenseCreatedEvent event) {
     log.info("Received ExpenseCreated event {}", event.getEventId());
 
@@ -72,7 +73,7 @@ public class ExpenseNotificationListener extends AbstractNotificationListener {
   }
 
   /** Sends different repayment versions to the repayer and the recipient. */
-  @RabbitListener(queues = "repayment.created")
+  @RabbitListener(queues = QueueNames.REPAYMENT_CREATED)
   public void handleRepaymentCreated(RepaymentCreatedEvent event) {
     log.info("Received RepaymentCreatedEvent event {}", event.getEventId());
 

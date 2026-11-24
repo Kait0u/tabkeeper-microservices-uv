@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 import pl.kaitoudev.tabkeeper.event.user.UserCreatedEvent;
+import pl.kaitoudev.tabkeeper.queues.QueueNames;
 import pl.kaitoudev.tabkeeper.service.notification.email.NotificationTitles;
 import pl.kaitoudev.tabkeeper.service.notification.email.renderer.UserTemplateRenderer;
 import pl.kaitoudev.tabkeeper.service.notification.service.NotificationService;
@@ -19,7 +20,7 @@ public class UserNotificationListener extends AbstractNotificationListener {
     this.userTemplateRenderer = userTemplateRenderer;
   }
 
-  @RabbitListener(queues = "user.created")
+  @RabbitListener(queues = QueueNames.USER_CREATED)
   public void handleUserCreated(UserCreatedEvent event) {
     log.info("Received UserCreated event {}", event.getEventId());
 
