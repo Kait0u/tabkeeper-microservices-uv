@@ -3,15 +3,25 @@ plugins {
 }
 
 dependencies {
-    implementation(libs.spring.boot.actuator)
-    implementation(libs.spring.cloud.config)
-    implementation(libs.spring.boot.grpc.server)
+    // Events
+    implementation(project(":shared:events"))
 
+    // RabbitMQ
+    implementation(libs.spring.boot.rabbitmq)
+
+    // Email
+    implementation(libs.spring.boot.mail)
+
+    // Health
+    implementation(libs.spring.boot.actuator)
+
+    // Config
+    implementation(libs.spring.cloud.config)
+
+    // Eureka
     implementation(libs.spring.boot.web.server)
     implementation(libs.spring.cloud.netflix.eureka.client)
 
-    runtimeOnly(libs.postgresql)
-
-    testImplementation(libs.spring.boot.actuator.test)
-    testImplementation(libs.spring.boot.grpc.server.test)
+    // Test
+    testImplementation(libs.spring.boot.test)
 }

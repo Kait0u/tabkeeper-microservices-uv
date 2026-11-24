@@ -17,6 +17,8 @@ spring-boot-web-server = { module = "org.springframework.boot:spring-boot-web-se
 spring-boot-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 spring-boot-grpc-client = { module = "org.springframework.boot:spring-boot-starter-grpc-client" }
 spring-boot-grpc-server = { module = "org.springframework.boot:spring-boot-starter-grpc-server" }
+spring-boot-rabbitmq = { module = "org.springframework.boot:spring-boot-starter-amqp" }
+spring-boot-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
 
 # Spring Cloud
 spring-cloud-config = { module = "org.springframework.cloud:spring-cloud-starter-config" }
@@ -49,6 +51,7 @@ testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgr
 spring-boot-actuator-test = { module = "org.springframework.boot:spring-boot-starter-actuator-test" }
 spring-boot-grpc-client-test = { module = "org.springframework.boot:spring-boot-starter-grpc-client-test" }
 spring-boot-grpc-server-test = { module = "org.springframework.boot:spring-boot-starter-grpc-server-test" }
+spring-boot-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 spring-data-jpa-test = { module = "org.springframework.boot:spring-boot-starter-data-jpa-test" }
 flyway-test = { module = "org.springframework.boot:spring-boot-starter-flyway-test" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
