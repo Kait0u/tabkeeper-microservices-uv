@@ -4,13 +4,17 @@ plugins {
 
 dependencies {
     // Events
+    implementation(project(":contracts:user-contracts"))
+    implementation(project(":contracts:group-contracts"))
     implementation(project(":shared:events"))
+    implementation(project(":shared:grpc-utils"))
 
     // RabbitMQ
     implementation(libs.spring.boot.rabbitmq)
 
     // Email
     implementation(libs.spring.boot.mail)
+    implementation(libs.spring.boot.thymeleaf)
 
     // Health
     implementation(libs.spring.boot.actuator)
