@@ -156,8 +156,8 @@ services:
       SPRING_MAIL_PORT: "1025"
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: "5672"
-      RABBITMQ_USERNAME: tabkeeper
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Required}
+      RABBITMQ_USERNAME: tabkeeper-app
+      RABBITMQ_PASSWORD: ${RABBITMQ_APP_PASSWORD:?Required}
 
 
   mailpit:
@@ -188,6 +188,10 @@ services:
     configs:
       - source: rabbitmq-plugins
         target: /etc/rabbitmq/enabled_plugins
+      - source: rabbitmq-config
+        target: /etc/rabbitmq/rabbitmq.conf
+      - source: rabbitmq-definitions
+        target: /etc/rabbitmq/definitions.json
     volumes:
       - tabkeeper_rabbitmq_data:/var/lib/rabbitmq
       - tabkeeper_rabbitmq_logs:/var/log/rabbitmq
@@ -210,6 +214,10 @@ services:
 configs:
   rabbitmq-plugins:
     content: "[rabbitmq_management]."
+  rabbitmq-config:
+    file: ./docker/rabbitmq/rabbitmq.conf
+  rabbitmq-definitions:
+    file: ./docker/rabbitmq/definitions.json
 
 volumes:
   tabkeeper_user_service_postgres_data: {}

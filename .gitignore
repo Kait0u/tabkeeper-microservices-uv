@@ -1,4 +1,6 @@
 .env
+/data/
+/docker/rabbitmq/definitions.json
 
 HELP.md
 .gradle

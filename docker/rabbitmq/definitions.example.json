@@ -1,0 +1,60 @@
+{
+  "vhosts": [
+    { "name": "/" }
+  ],
+  "users": [
+    {
+      "name": "tabkeeper-app",
+      "password_hash": "REPLACE_WITH_GENERATED_HASH",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": []
+    },
+    {
+      "name": "tabkeeper",
+      "password_hash": "REPLACE_WITH_GENERATED_HASH",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": ["administrator"]
+    }
+  ],
+  "permissions": [
+    {
+      "user": "tabkeeper-app",
+      "vhost": "/",
+      "configure": "^$",
+      "write": "^tabkeeper\\.events$",
+      "read": "^(user\\.created|groupinvite\\.created|groupinvite\\.accepted|expense\\.created|repayment\\.created)$"
+    },
+    {
+      "user": "tabkeeper",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "tabkeeper.events",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    { "name": "user.created", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+    { "name": "groupinvite.created", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+    { "name": "groupinvite.accepted", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+    { "name": "expense.created", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+    { "name": "repayment.created", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} }
+  ],
+  "bindings": [
+    { "source": "tabkeeper.events", "vhost": "/", "destination": "user.created", "destination_type": "queue", "routing_key": "user.created", "arguments": {} },
+    { "source": "tabkeeper.events", "vhost": "/", "destination": "groupinvite.created", "destination_type": "queue", "routing_key": "groupinvite.created", "arguments": {} },
+    { "source": "tabkeeper.events", "vhost": "/", "destination": "groupinvite.accepted", "destination_type": "queue", "routing_key": "groupinvite.accepted", "arguments": {} },
+    { "source": "tabkeeper.events", "vhost": "/", "destination": "expense.created", "destination_type": "queue", "routing_key": "expense.created", "arguments": {} },
+    { "source": "tabkeeper.events", "vhost": "/", "destination": "repayment.created", "destination_type": "queue", "routing_key": "repayment.created", "arguments": {} }
+  ]
+}

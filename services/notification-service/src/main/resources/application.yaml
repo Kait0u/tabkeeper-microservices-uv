@@ -25,8 +25,8 @@ spring:
   rabbitmq:
     host: ${RABBITMQ_HOST:rabbitmq}
     port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:tabkeeper}
-    password: ${RABBITMQ_PASSWORD}
+    username: ${RABBITMQ_USERNAME:tabkeeper-app}
+    password: ${RABBITMQ_APP_PASSWORD}
 
   mail:
     host: ${MAILPIT_HOST:mailpit}
