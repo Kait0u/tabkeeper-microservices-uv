@@ -37,6 +37,8 @@ postgresql = { module = "org.postgresql:postgresql" }
 flyway = { module = "org.springframework.boot:spring-boot-starter-flyway" }
 flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
 
+# Jackson
+jackson-databind = { module = "tools.jackson.core:jackson-databind" }
 # Protobuf
 google-protobuf-gradle-plugin = { module = "com.google.protobuf:protobuf-gradle-plugin", version.ref = "google-protobuf" }
 

@@ -4,11 +4,13 @@ import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.jackson.Jacksonized;
 import pl.kaitoudev.tabkeeper.event.AbstractEvent;
 
 /** Event published after a user is invited to a group. */
 @Getter
 @SuperBuilder
+@Jacksonized
 public final class GroupInvitationCreatedEvent extends AbstractEvent {
   private final UUID invitationId;
   private final UUID groupId;

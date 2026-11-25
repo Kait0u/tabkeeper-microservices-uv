@@ -5,11 +5,13 @@ import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.jackson.Jacksonized;
 import pl.kaitoudev.tabkeeper.event.AbstractEvent;
 
 /** Event published after a repayment between group members is recorded. */
 @Getter
 @SuperBuilder
+@Jacksonized
 public final class RepaymentCreatedEvent extends AbstractEvent {
   private final UUID repaymentId;
   private final UUID groupId;
