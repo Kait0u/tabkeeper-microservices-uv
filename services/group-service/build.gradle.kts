@@ -16,6 +16,9 @@ dependencies {
     runtimeOnly(libs.postgresql)
     runtimeOnly(libs.flyway.postgresql)
 
+    // Notifs
+    implementation(project(":shared:notification-commons"))
+
     // Health
     implementation(libs.spring.boot.actuator)
 

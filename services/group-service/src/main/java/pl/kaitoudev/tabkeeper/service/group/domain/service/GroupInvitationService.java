@@ -7,6 +7,10 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import pl.kaitoudev.tabkeeper.event.group.GroupInvitationAcceptedEvent;
+import pl.kaitoudev.tabkeeper.event.group.GroupInvitationCreatedEvent;
+import pl.kaitoudev.tabkeeper.publisher.NotificationEventPublisher;
+import pl.kaitoudev.tabkeeper.queues.QueueNames;
 import pl.kaitoudev.tabkeeper.service.group.domain.entity.Group;
 import pl.kaitoudev.tabkeeper.service.group.domain.entity.GroupInvitation;
 import pl.kaitoudev.tabkeeper.service.group.domain.enums.GroupInvitationStatus;
@@ -23,9 +27,9 @@ import pl.kaitoudev.tabkeeper.service.group.domain.repository.GroupRepository;
 public class GroupInvitationService {
 
   private final GroupMembershipService groupMembershipService;
-
   private final GroupInvitationRepository groupInvitationRepository;
   private final GroupRepository groupRepository;
+  private final NotificationEventPublisher notificationEventPublisher;
 
   public GroupInvitation inviteUserToGroup(UUID groupId, UUID invitedByUserId, UUID invitedUserId) {
     log.info(
@@ -59,6 +63,8 @@ public class GroupInvitationService {
 
     GroupInvitation saved = groupInvitationRepository.save(groupInvitation);
     log.info("InvitationCreated: ID={}", saved.getId());
+
+    publishInvitationSentNotification(groupInvitation);
 
     return saved;
   }
@@ -99,11 +105,52 @@ public class GroupInvitationService {
 
     GroupInvitation saved = groupInvitationRepository.save(groupInvitation);
 
-    log.info("InvitationAccepted: ID={}", saved.getId());
-
     groupMembershipService.addMemberToGroup(
         groupInvitation.getGroup().getId(), groupInvitation.getInvitedUser());
+    log.info("InvitationAccepted: ID={}", saved.getId());
+
+    publishInvitationAcceptedNotification(groupInvitation);
 
     return saved;
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // NOTIFICATION LOGIC
+  // -----------------------------------------------------------------------------------------------
+
+  private void publishInvitationSentNotification(GroupInvitation groupInvitation) {
+    Instant now = Instant.now();
+
+    GroupInvitationCreatedEvent event = GroupInvitationCreatedEvent.builder()
+        .eventId(UUID.randomUUID())
+        .groupId(groupInvitation.getGroup().getId())
+        .invitationId(groupInvitation.getId())
+        .invitedUserId(groupInvitation.getInvitedUser())
+        .invitedByUserId(groupInvitation.getInvitedBy())
+        .groupName(groupInvitation.getGroup().getName())
+        .occurredAt(now)
+        .createdAt(now)
+        .build();
+
+    notificationEventPublisher.publishAfterCommit(event, QueueNames.GROUPINVITE_CREATED);
+    log.info("{}@ID={} created for publishing: {}", event.getEventType(), event.getEventId(), event);
+  }
+
+  private void publishInvitationAcceptedNotification(GroupInvitation groupInvitation) {
+    Instant now = Instant.now();
+
+    GroupInvitationAcceptedEvent event = GroupInvitationAcceptedEvent.builder()
+        .eventId(UUID.randomUUID())
+        .groupId(groupInvitation.getGroup().getId())
+        .invitationId(groupInvitation.getId())
+        .groupName(groupInvitation.getGroup().getName())
+        .invitedUserId(groupInvitation.getInvitedUser())
+        .invitedByUserId(groupInvitation.getInvitedBy())
+        .acceptedAt(now)
+        .occurredAt(now)
+        .build();
+
+    notificationEventPublisher.publishAfterCommit(event, QueueNames.GROUPINVITE_ACCEPTED);
+    log.info("{}@ID={} created for publishing: {}", event.getEventType(), event.getEventId(), event);
   }
 }
