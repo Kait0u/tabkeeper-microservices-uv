@@ -1,6 +1,7 @@
 package pl.kaitoudev.tabkeeper.service.expense.domain.service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -14,6 +15,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import pl.kaitoudev.tabkeeper.event.expense.ExpenseCreatedEvent;
+import pl.kaitoudev.tabkeeper.event.expense.ExpenseParticipant;
+import pl.kaitoudev.tabkeeper.event.expense.RepaymentCreatedEvent;
+import pl.kaitoudev.tabkeeper.publisher.NotificationEventPublisher;
+import pl.kaitoudev.tabkeeper.queues.QueueNames;
 import pl.kaitoudev.tabkeeper.service.expense.client.GroupGrpcClient;
 import pl.kaitoudev.tabkeeper.service.expense.domain.entity.Expense;
 import pl.kaitoudev.tabkeeper.service.expense.domain.entity.ExpenseAllocation;
@@ -48,6 +54,7 @@ public class ExpenseService {
   private final GroupGrpcClient groupGrpcClient;
 
   private final GroupBalanceCalculator groupBalanceCalculator;
+  private final NotificationEventPublisher notificationEventPublisher;
 
   /**
    * Validates and persists an expense, its participant shares, and its group-local sequence.
@@ -96,6 +103,8 @@ public class ExpenseService {
         groupId,
         payingUserId,
         sequence);
+
+    publishExpenseCreatedNotification(savedExpense);
 
     return savedExpense;
   }
@@ -270,6 +279,8 @@ public class ExpenseService {
         repayingUserId,
         recipientUserId);
 
+    publishRepaymentCreatedNotification(savedRepayment);
+
     return RepaymentDetails.builder().repayment(savedRepayment).allocations(allocations).build();
   }
 
@@ -355,5 +366,60 @@ public class ExpenseService {
     validateUserBelongsToGroup(repayingUserId, group);
     validateUserBelongsToGroup(recipientUserId, group);
     validateAmount(amount, "Repayment amount", false);
+  }
+
+  // -----------------------------------------------------------------------------------------------
+  // NOTIFICATION LOGIC
+  // -----------------------------------------------------------------------------------------------
+
+  /** Publishes the immutable expense-created event with all participant shares. */
+  private void publishExpenseCreatedNotification(Expense expense) {
+    Instant now = Instant.now();
+
+    List<ExpenseParticipant> participants =
+        expense.getAllocations().stream()
+            .map(
+                allocation -> ExpenseParticipant.of(allocation.getUserId(), allocation.getAmount()))
+            .toList();
+
+    ExpenseCreatedEvent event =
+        ExpenseCreatedEvent.builder()
+            .eventId(UUID.randomUUID())
+            .occurredAt(now)
+            .expenseId(expense.getId())
+            .groupId(expense.getGroup().getGroupId())
+            .payingUserId(expense.getPayingUserId())
+            .amount(expense.getAmount())
+            .currency(expense.getCurrency())
+            .participants(participants)
+            .createdAt(now)
+            .build();
+
+    notificationEventPublisher.publishAfterCommit(event, QueueNames.EXPENSE_CREATED);
+    log.info(
+        "{}@ID={} created for publishing: {}", event.getEventType(), event.getEventId(), event);
+  }
+
+  /** Publishes the immutable repayment-created event with both participant identifiers. */
+  private void publishRepaymentCreatedNotification(Repayment repayment) {
+    Instant now = Instant.now();
+
+    RepaymentCreatedEvent event =
+        RepaymentCreatedEvent.builder()
+            .eventId(UUID.randomUUID())
+            .occurredAt(now)
+            .repaymentId(repayment.getId())
+            .groupId(repayment.getGroup().getGroupId())
+            .reportingUserId(repayment.getReportingUserId())
+            .repayingUserId(repayment.getRepayingUserId())
+            .recipientUserId(repayment.getRecipientUserId())
+            .amount(repayment.getAmount())
+            .currency(repayment.getCurrency())
+            .createdAt(now)
+            .build();
+
+    notificationEventPublisher.publishAfterCommit(event, QueueNames.REPAYMENT_CREATED);
+    log.info(
+        "{}@ID={} created for publishing: {}", event.getEventType(), event.getEventId(), event);
   }
 }

@@ -22,6 +22,12 @@ spring:
     server:
       port: 9090
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:tabkeeper-app}
+    password: ${RABBITMQ_APP_PASSWORD}
+
 eureka:
   client:
     service-url:
