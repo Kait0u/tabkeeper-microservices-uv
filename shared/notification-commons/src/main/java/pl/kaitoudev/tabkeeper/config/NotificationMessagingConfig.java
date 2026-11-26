@@ -1,8 +1,10 @@
 package pl.kaitoudev.tabkeeper.config;
 
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import pl.kaitoudev.tabkeeper.publisher.NotificationEventPublisher;
 
 /** Shared JSON and publisher configuration for notification-producing services. */
 @Configuration
@@ -13,5 +15,10 @@ public class NotificationMessagingConfig {
   @Bean
   JacksonJsonMessageConverter notificationMessageConverter() {
     return new JacksonJsonMessageConverter();
+  }
+
+  @Bean
+  NotificationEventPublisher notificationEventPublisher(RabbitTemplate rabbitTemplate) {
+    return new NotificationEventPublisher(rabbitTemplate);
   }
 }
