@@ -50,6 +50,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-user-service:5432/user_service
       SPRING_DATASOURCE_USERNAME: us
       SPRING_DATASOURCE_PASSWORD: ${USER_DB_PASSWORD:?Required}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: tabkeeper-app
+      RABBITMQ_APP_PASSWORD: ${RABBITMQ_APP_PASSWORD:?Required}
     depends_on:
       db-user-service:
         condition: service_healthy
@@ -84,6 +88,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-group-service:5432/group_service
       SPRING_DATASOURCE_USERNAME: gs
       SPRING_DATASOURCE_PASSWORD: ${GROUP_DB_PASSWORD:?Required}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: tabkeeper-app
+      RABBITMQ_APP_PASSWORD: ${RABBITMQ_APP_PASSWORD:?Required}
     depends_on:
       db-group-service:
         condition: service_healthy
@@ -118,6 +126,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db-expense-service:5432/expense_service
       SPRING_DATASOURCE_USERNAME: es
       SPRING_DATASOURCE_PASSWORD: ${EXPENSE_DB_PASSWORD:?Required}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: tabkeeper-app
+      RABBITMQ_APP_PASSWORD: ${RABBITMQ_APP_PASSWORD:?Required}
     depends_on:
       db-expense-service:
         condition: service_healthy
@@ -157,7 +169,7 @@ services:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: "5672"
       RABBITMQ_USERNAME: tabkeeper-app
-      RABBITMQ_PASSWORD: ${RABBITMQ_APP_PASSWORD:?Required}
+      RABBITMQ_APP_PASSWORD: ${RABBITMQ_APP_PASSWORD:?Required}
 
 
   mailpit:
