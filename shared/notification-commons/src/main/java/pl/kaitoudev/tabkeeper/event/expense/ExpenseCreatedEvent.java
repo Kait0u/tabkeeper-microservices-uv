@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.jackson.Jacksonized;
 import pl.kaitoudev.tabkeeper.event.AbstractEvent;
+import pl.kaitoudev.tabkeeper.event.EventTypes;
 
 /** Event published after an expense and its participant allocations are created. */
 @Getter
@@ -21,4 +22,10 @@ public final class ExpenseCreatedEvent extends AbstractEvent {
   private final String currency;
   private final List<ExpenseParticipant> participants;
   private final Instant createdAt;
+
+  /** Returns the stable expense-created event type. */
+  @Override
+  public String getEventType() {
+    return EventTypes.EXPENSE_CREATED;
+  }
 }

@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.jackson.Jacksonized;
 import pl.kaitoudev.tabkeeper.event.AbstractEvent;
+import pl.kaitoudev.tabkeeper.event.EventTypes;
 
 /** Event published after a repayment between group members is recorded. */
 @Getter
@@ -21,4 +22,10 @@ public final class RepaymentCreatedEvent extends AbstractEvent {
   private final BigDecimal amount;
   private final String currency;
   private final Instant createdAt;
+
+  /** Returns the stable repayment-created event type. */
+  @Override
+  public String getEventType() {
+    return EventTypes.REPAYMENT_CREATED;
+  }
 }

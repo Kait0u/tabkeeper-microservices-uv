@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.jackson.Jacksonized;
 import pl.kaitoudev.tabkeeper.event.AbstractEvent;
+import pl.kaitoudev.tabkeeper.event.EventTypes;
 
 /** Event published after a group invitation is accepted. */
 @Getter
@@ -18,4 +19,10 @@ public final class GroupInvitationAcceptedEvent extends AbstractEvent {
   private final UUID invitedByUserId;
   private final UUID invitedUserId;
   private final Instant acceptedAt;
+
+  /** Returns the stable group-invitation-accepted event type. */
+  @Override
+  public String getEventType() {
+    return EventTypes.GROUPINVITE_ACCEPTED;
+  }
 }

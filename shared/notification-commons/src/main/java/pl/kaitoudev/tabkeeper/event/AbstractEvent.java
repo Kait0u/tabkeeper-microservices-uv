@@ -11,6 +11,8 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public abstract class AbstractEvent {
   protected final UUID eventId;
-  protected final String eventType;
   protected final Instant occurredAt;
+
+  /** Returns the stable type identifier for this event. */
+  public abstract String getEventType();
 }

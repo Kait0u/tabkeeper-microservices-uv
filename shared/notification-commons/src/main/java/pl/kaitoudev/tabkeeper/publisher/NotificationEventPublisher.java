@@ -1,12 +1,14 @@
 package pl.kaitoudev.tabkeeper.publisher;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import pl.kaitoudev.tabkeeper.config.NotificationMessagingConfig;
 import pl.kaitoudev.tabkeeper.event.AbstractEvent;
 
+@Slf4j
 @RequiredArgsConstructor
 public class NotificationEventPublisher {
 
@@ -21,8 +23,7 @@ public class NotificationEventPublisher {
             public void afterCommit() {
               publish(event, routingKey);
             }
-          }
-      );
+          });
       return;
     }
 
@@ -31,5 +32,6 @@ public class NotificationEventPublisher {
 
   private void publish(AbstractEvent event, String routingKey) {
     rabbitTemplate.convertAndSend(NotificationMessagingConfig.EXCHANGE_NAME, routingKey, event);
+    log.debug("Sent notification event: {}", event);
   }
 }
